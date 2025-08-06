@@ -1,0 +1,6 @@
+{
+  "buildCommand": "npm run build:web && npm run fix-paths",
+  "outputDirectory": "dist",
+  "installCommand": "npm install",
+  "framework": "other"
+}

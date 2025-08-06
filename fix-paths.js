@@ -5,7 +5,6 @@ const path = require('path');
 const indexPath = path.join(__dirname, 'dist', 'index.html');
 const nojekyllPath = path.join(__dirname, 'dist', '.nojekyll');
 const headersPath = path.join(__dirname, 'dist', '_headers');
-const redirectsPath = path.join(__dirname, 'dist', '_redirects');
 
 if (fs.existsSync(indexPath)) {
   let content = fs.readFileSync(indexPath, 'utf8');
@@ -51,10 +50,3 @@ const headersContent = `/*
 
 fs.writeFileSync(headersPath, headersContent);
 console.log('Created _headers file for Cloudflare Pages');
-
-// Create _redirects file for client-side routing
-const redirectsContent = `# Fallback for client-side routing
-/* /index.html 200`;
-
-fs.writeFileSync(redirectsPath, redirectsContent);
-console.log('Created _redirects file for SPA routing');
