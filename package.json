@@ -10,7 +10,8 @@
     "fix-paths": "node fix-paths.js",
     "lint": "expo lint",
     "predeploy": "npm run build:web && npm run fix-paths",
-    "deploy": "gh-pages -d dist"
+    "deploy": "npx wrangler pages deploy dist",
+    "deploy:wrangler": "npx wrangler deploy --assets=./dist"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.1",
