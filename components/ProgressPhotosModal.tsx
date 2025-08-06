@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, Alert, Image, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, Alert, Image, ScrollView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Camera, X, Image as ImageIcon, Calendar } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
@@ -74,8 +74,12 @@ export const ProgressPhotosModal: React.FC<ProgressPhotosModalProps> = ({
   };
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
-      <SafeAreaView style={styles.container}>
+    <Modal 
+      visible={visible} 
+      animationType="slide" 
+      presentationStyle={Platform.OS === 'web' ? 'fullScreen' : 'pageSheet'}
+    >
+      <SafeAreaView style={styles.container} edges={Platform.OS === 'web' ? [] : ['top', 'bottom']}>
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <X color="#6b7280" size={24} />
@@ -155,6 +159,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f9fafb',
+    ...(Platform.OS === 'web' ? {
+      height: '100vh' as any,
+      maxHeight: '100vh' as any,
+    } : {}),
   },
   header: {
     flexDirection: 'row',
@@ -237,6 +245,9 @@ const styles = StyleSheet.create({
   actionButtons: {
     gap: 16,
     marginBottom: 40,
+    ...(Platform.OS === 'web' ? {
+      paddingBottom: 60,
+    } : {}),
   },
   actionButton: {
     flexDirection: 'row',

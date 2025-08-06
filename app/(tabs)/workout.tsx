@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Plus, Dumbbell, Clock, Flame } from 'lucide-react-native';
+import { Plus, Dumbbell, Clock, Flame, Edit3, Trash2 } from 'lucide-react-native';
 import { useData } from '@/contexts/DataContext';
 import { WorkoutEntry } from '@/types';
 
 export default function Workout() {
-  const { getCurrentLog, addWorkoutEntry } = useData();
+  const { getCurrentLog, addWorkoutEntry, updateWorkoutEntry, deleteWorkoutEntry } = useData();
   const [showAddModal, setShowAddModal] = useState(false);
   const [workoutName, setWorkoutName] = useState('');
   const [duration, setDuration] = useState('');
   const [caloriesBurned, setCaloriesBurned] = useState('');
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
 
   const log = getCurrentLog();
   const workoutEntries = log.workout_entries || [];
@@ -42,11 +43,48 @@ export default function Workout() {
       calories_burned: caloriesNum,
     };
 
-    await addWorkoutEntry(entry);
+    if (editingIndex !== null) {
+      await updateWorkoutEntry(editingIndex, entry);
+      setEditingIndex(null);
+    } else {
+      await addWorkoutEntry(entry);
+    }
+
     setWorkoutName('');
     setDuration('');
     setCaloriesBurned('');
     setShowAddModal(false);
+  };
+
+  const handleEditWorkout = (index: number, entry: WorkoutEntry) => {
+    setEditingIndex(index);
+    setWorkoutName(entry.name);
+    setDuration(entry.duration_min.toString());
+    setCaloriesBurned(entry.calories_burned.toString());
+    setShowAddModal(true);
+  };
+
+  const handleDeleteWorkout = async (index: number) => {
+    Alert.alert(
+      'Delete Workout',
+      'Are you sure you want to delete this workout?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Delete', 
+          style: 'destructive',
+          onPress: () => deleteWorkoutEntry(index)
+        }
+      ]
+    );
+  };
+
+  const handleCloseModal = () => {
+    setShowAddModal(false);
+    setEditingIndex(null);
+    setWorkoutName('');
+    setDuration('');
+    setCaloriesBurned('');
   };
 
   return (
@@ -97,7 +135,11 @@ export default function Workout() {
               </View>
             ) : (
               workoutEntries.map((entry, index) => (
-                <View key={index} style={styles.workoutItem}>
+                <TouchableOpacity 
+                  key={index} 
+                  style={styles.workoutItem}
+                  onPress={() => handleEditWorkout(index, entry)}
+                >
                   <View style={styles.workoutInfo}>
                     <Text style={styles.workoutName}>{entry.name}</Text>
                     <View style={styles.workoutStats}>
@@ -111,7 +153,27 @@ export default function Workout() {
                       </View>
                     </View>
                   </View>
-                </View>
+                  <View style={styles.workoutActions}>
+                    <TouchableOpacity
+                      style={styles.editButton}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        handleEditWorkout(index, entry);
+                      }}
+                    >
+                      <Edit3 color="#6b7280" size={16} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.deleteButton}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        handleDeleteWorkout(index);
+                      }}
+                    >
+                      <Trash2 color="#ef4444" size={16} />
+                    </TouchableOpacity>
+                  </View>
+                </TouchableOpacity>
               ))
             )}
           </View>
@@ -121,8 +183,10 @@ export default function Workout() {
       <Modal visible={showAddModal} animationType="slide" presentationStyle="pageSheet">
         <SafeAreaView style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Add Workout</Text>
-            <TouchableOpacity onPress={() => setShowAddModal(false)}>
+            <Text style={styles.modalTitle}>
+              {editingIndex !== null ? 'Edit Workout' : 'Add Workout'}
+            </Text>
+            <TouchableOpacity onPress={handleCloseModal}>
               <Text style={styles.cancelButton}>Cancel</Text>
             </TouchableOpacity>
           </View>
@@ -277,6 +341,21 @@ const styles = StyleSheet.create({
   },
   workoutInfo: {
     flex: 1,
+  },
+  workoutActions: {
+    flexDirection: 'row',
+    gap: 8,
+    marginLeft: 12,
+  },
+  editButton: {
+    padding: 8,
+    borderRadius: 6,
+    backgroundColor: '#f3f4f6',
+  },
+  deleteButton: {
+    padding: 8,
+    borderRadius: 6,
+    backgroundColor: '#fef2f2',
   },
   workoutName: {
     fontSize: 16,

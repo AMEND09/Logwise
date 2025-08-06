@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Plus, Search, Utensils, Coffee, Sun, Moon } from 'lucide-react-native';
+import { Plus, Search, Utensils, Coffee, Sun, Moon, Edit3, Trash2 } from 'lucide-react-native';
 import { useData } from '@/contexts/DataContext';
 import { searchFoods } from '@/utils/api';
 import { safeFloat } from '@/utils/calculations';
@@ -17,7 +17,7 @@ const MEAL_TYPES = [
 ];
 
 export default function Food() {
-  const { getCurrentLog, addFoodEntry, data } = useData();
+  const { getCurrentLog, addFoodEntry, updateFoodEntry, deleteFoodEntry, data } = useData();
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedMeal, setSelectedMeal] = useState('Breakfast');
   const [searchQuery, setSearchQuery] = useState('');
@@ -33,6 +33,8 @@ export default function Food() {
     mood_before: 'stressed' | 'happy' | 'sad' | 'bored' | 'anxious' | 'neutral';
     eating_trigger: 'hunger' | 'emotion' | 'social' | 'habit' | 'craving';
   } | null>(null);
+  // Editing state
+  const [editingEntry, setEditingEntry] = useState<{ mealType: string; index: number } | null>(null);
 
   const log = getCurrentLog();
   const customFoods = data?.custom_foods || [];
@@ -69,21 +71,51 @@ export default function Food() {
   };
 
   const handleAddFood = async (foodEntry: FoodEntry) => {
-    // Add mindful eating data to the food entry
-    if (mindfulResponses) {
-      foodEntry = {
-        ...foodEntry,
-        ...mindfulResponses
-      };
+    if (editingEntry) {
+      // Update existing entry
+      await updateFoodEntry(editingEntry.mealType, editingEntry.index, foodEntry);
+      setEditingEntry(null);
+    } else {
+      // Add mindful eating data to the food entry
+      if (mindfulResponses) {
+        foodEntry = {
+          ...foodEntry,
+          ...mindfulResponses
+        };
+      }
+      
+      await addFoodEntry(selectedMeal, foodEntry);
     }
     
-    await addFoodEntry(selectedMeal, foodEntry);
     setShowFoodDetail(false);
     setShowAddModal(false);
     setSearchQuery('');
     setSearchResults([]);
     setSelectedFood(null);
     setMindfulResponses(null);
+  };
+
+  const handleEditFood = (mealType: string, index: number, entry: FoodEntry) => {
+    setEditingEntry({ mealType, index });
+    setSelectedMeal(mealType);
+    setSelectedFood(entry);
+    setIsSelectedFoodCustom(true);
+    setShowFoodDetail(true);
+  };
+
+  const handleDeleteFood = async (mealType: string, index: number) => {
+    Alert.alert(
+      'Delete Food Entry',
+      'Are you sure you want to delete this food entry?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Delete', 
+          style: 'destructive',
+          onPress: () => deleteFoodEntry(mealType, index)
+        }
+      ]
+    );
   };
 
   const renderMealSection = (mealType: string) => {
@@ -119,19 +151,45 @@ export default function Food() {
           <Text style={styles.emptyText}>No food logged for this meal</Text>
         ) : (
           mealEntries.map((entry, index) => (
-            <View key={index} style={styles.foodItem}>
+            <TouchableOpacity 
+              key={index} 
+              style={styles.foodItem}
+              onPress={() => handleEditFood(mealType, index, entry)}
+            >
               <View style={styles.foodInfo}>
                 <Text style={styles.foodName}>{entry.name}</Text>
                 <Text style={styles.foodDetails}>
                   {Math.round(entry.grams)}g • {Math.round(entry.calories)} cal
                 </Text>
               </View>
-              <View style={styles.macros}>
-                <Text style={styles.macroText}>P: {Math.round(entry.protein_g)}g</Text>
-                <Text style={styles.macroText}>C: {Math.round(entry.carbs_g)}g</Text>
-                <Text style={styles.macroText}>F: {Math.round(entry.fats_g)}g</Text>
+              <View style={styles.foodActions}>
+                <View style={styles.macros}>
+                  <Text style={styles.macroText}>P: {Math.round(entry.protein_g)}g</Text>
+                  <Text style={styles.macroText}>C: {Math.round(entry.carbs_g)}g</Text>
+                  <Text style={styles.macroText}>F: {Math.round(entry.fats_g)}g</Text>
+                </View>
+                <View style={styles.actionButtons}>
+                  <TouchableOpacity
+                    style={styles.editButton}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      handleEditFood(mealType, index, entry);
+                    }}
+                  >
+                    <Edit3 color="#6b7280" size={16} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.deleteButton}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      handleDeleteFood(mealType, index);
+                    }}
+                  >
+                    <Trash2 color="#ef4444" size={16} />
+                  </TouchableOpacity>
+                </View>
               </View>
-            </View>
+            </TouchableOpacity>
           ))
         )}
       </View>
@@ -373,6 +431,27 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontFamily: 'Inter-Regular',
     color: '#6b7280',
+  },
+  foodActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flex: 1,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 8,
+    marginLeft: 12,
+  },
+  editButton: {
+    padding: 8,
+    borderRadius: 6,
+    backgroundColor: '#f3f4f6',
+  },
+  deleteButton: {
+    padding: 8,
+    borderRadius: 6,
+    backgroundColor: '#fef2f2',
   },
   modalContainer: {
     flex: 1,

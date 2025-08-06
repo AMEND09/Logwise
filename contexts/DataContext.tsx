@@ -16,6 +16,11 @@ interface DataContextType {
   logWeight: (weight: number) => Promise<void>;
   logWater: (amount: number) => Promise<void>;
   initializeData: () => Promise<void>;
+  // Edit/Update functions
+  updateFoodEntry: (mealType: string, index: number, entry: FoodEntry, date?: string) => Promise<void>;
+  deleteFoodEntry: (mealType: string, index: number, date?: string) => Promise<void>;
+  updateWorkoutEntry: (index: number, entry: WorkoutEntry, date?: string) => Promise<void>;
+  deleteWorkoutEntry: (index: number, date?: string) => Promise<void>;
   // Habit-breaking and behavioral coaching functions
   toggleHabit: (habitId: string) => Promise<void>;
   updateMoodCheckin: (type: 'morning' | 'evening', mood: string) => Promise<void>;
@@ -185,6 +190,87 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await saveData(updatedData);
   };
 
+  // Edit/Update/Delete functions
+  const updateFoodEntry = async (mealType: string, index: number, entry: FoodEntry, date?: string) => {
+    if (!data) return;
+
+    const originalDate = currentDate;
+    if (date) setCurrentDate(date);
+    
+    const log = getCurrentLog();
+    
+    if (log.meals[mealType] && log.meals[mealType][index]) {
+      log.meals[mealType][index] = entry;
+      
+      const updatedData = { ...data };
+      updatedData.daily_logs[date || currentDate] = log;
+      setData(updatedData);
+      await saveData(updatedData);
+    }
+    
+    if (date) setCurrentDate(originalDate);
+  };
+
+  const deleteFoodEntry = async (mealType: string, index: number, date?: string) => {
+    if (!data) return;
+
+    const originalDate = currentDate;
+    if (date) setCurrentDate(date);
+    
+    const log = getCurrentLog();
+    
+    if (log.meals[mealType] && log.meals[mealType][index] !== undefined) {
+      log.meals[mealType].splice(index, 1);
+      
+      const updatedData = { ...data };
+      updatedData.daily_logs[date || currentDate] = log;
+      setData(updatedData);
+      await saveData(updatedData);
+    }
+    
+    if (date) setCurrentDate(originalDate);
+  };
+
+  const updateWorkoutEntry = async (index: number, entry: WorkoutEntry, date?: string) => {
+    if (!data) return;
+
+    const originalDate = currentDate;
+    if (date) setCurrentDate(date);
+    
+    const log = getCurrentLog();
+    
+    if (log.workout_entries[index]) {
+      log.workout_entries[index] = entry;
+      
+      const updatedData = { ...data };
+      updatedData.daily_logs[date || currentDate] = log;
+      setData(updatedData);
+      await saveData(updatedData);
+    }
+    
+    if (date) setCurrentDate(originalDate);
+  };
+
+  const deleteWorkoutEntry = async (index: number, date?: string) => {
+    if (!data) return;
+
+    const originalDate = currentDate;
+    if (date) setCurrentDate(date);
+    
+    const log = getCurrentLog();
+    
+    if (log.workout_entries[index] !== undefined) {
+      log.workout_entries.splice(index, 1);
+      
+      const updatedData = { ...data };
+      updatedData.daily_logs[date || currentDate] = log;
+      setData(updatedData);
+      await saveData(updatedData);
+    }
+    
+    if (date) setCurrentDate(originalDate);
+  };
+
   // Habit-breaking and behavioral coaching functions
   const toggleHabit = async (habitId: string) => {
     if (!data) return;
@@ -252,6 +338,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         logWeight,
         logWater,
         initializeData,
+        updateFoodEntry,
+        deleteFoodEntry,
+        updateWorkoutEntry,
+        deleteWorkoutEntry,
         toggleHabit,
         updateMoodCheckin,
         updateReflection,

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, TextInput, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, TextInput, ScrollView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { X, Plus, Minus } from 'lucide-react-native';
+import { X, Plus, Minus, Clock, Flame, Utensils } from 'lucide-react-native';
 import { FoodEntry, OpenFoodFactsProduct } from '@/types';
 import { safeFloat } from '@/utils/calculations';
 
@@ -109,8 +109,12 @@ export const FoodDetailModal: React.FC<FoodDetailModalProps> = ({
   };
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
-      <SafeAreaView style={styles.container}>
+    <Modal 
+      visible={visible} 
+      animationType="slide" 
+      presentationStyle={Platform.OS === 'web' ? 'fullScreen' : 'pageSheet'}
+    >
+      <SafeAreaView style={styles.container} edges={Platform.OS === 'web' ? [] : ['top', 'bottom']}>
         <View style={styles.header}>
           <View style={styles.headerContent}>
             <Text style={styles.title} numberOfLines={2}>
@@ -260,6 +264,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f9fafb',
+    ...(Platform.OS === 'web' ? {
+      minHeight: '100vh' as any,
+      maxHeight: '100vh' as any,
+      overflow: 'hidden' as any,
+    } : {}),
   },
   header: {
     flexDirection: 'row',
@@ -312,11 +321,18 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+    ...(Platform.OS === 'web' ? {
+      paddingHorizontal: 20,
+    } : {}),
   },
   amountInputRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 16,
+    justifyContent: 'space-between',
+    ...(Platform.OS === 'web' ? {
+      paddingHorizontal: 4,
+    } : {}),
   },
   amountButton: {
     width: 44,
@@ -329,13 +345,14 @@ const styles = StyleSheet.create({
     borderColor: '#059669',
   },
   amountInput: {
-    flex: 1,
     fontSize: 24,
     fontFamily: 'Inter-Bold',
     color: '#111827',
     textAlign: 'center',
     marginHorizontal: 16,
     paddingVertical: 8,
+    minWidth: 80,
+    maxWidth: 120,
   },
   unitSelector: {
     flexDirection: 'row',
@@ -440,9 +457,16 @@ const styles = StyleSheet.create({
   },
   footer: {
     padding: 20,
+    paddingBottom: Platform.OS === 'web' ? 20 : 34,
     backgroundColor: '#ffffff',
     borderTopWidth: 1,
     borderTopColor: '#e5e7eb',
+    ...(Platform.OS === 'web' ? {
+      position: 'sticky' as any,
+      bottom: 0,
+      zIndex: 10,
+      minHeight: 80,
+    } : {}),
   },
   addButton: {
     backgroundColor: '#059669',

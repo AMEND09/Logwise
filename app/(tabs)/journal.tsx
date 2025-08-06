@@ -58,7 +58,7 @@ const JournalCard: React.FC<JournalCardProps> = ({
 );
 
 export default function JournalScreen() {
-  const { data, getCurrentLog } = useData();
+  const { data, getCurrentLog, updateFoodEntry, deleteFoodEntry, updateWorkoutEntry, deleteWorkoutEntry } = useData();
   const [selectedSection, setSelectedSection] = useState<JournalSection | null>(null);
   const [showPhotosModal, setShowPhotosModal] = useState(false);
 
@@ -110,6 +110,64 @@ export default function JournalScreen() {
 
   const handleProgressPhotos = () => {
     setShowPhotosModal(true);
+  };
+
+  const getRecentEntries = () => {
+    const recentEntries: Array<{
+      type: 'food' | 'workout';
+      date: string;
+      entry: any;
+      mealType?: string;
+      index: number;
+    }> = [];
+
+    // Get entries from last 7 days
+    const dates = Object.keys(data?.daily_logs || {})
+      .sort()
+      .reverse()
+      .slice(0, 7);
+
+    dates.forEach(date => {
+      const log = data?.daily_logs[date];
+      if (!log) return;
+
+      // Add food entries
+      Object.entries(log.meals).forEach(([mealType, meals]) => {
+        meals.forEach((meal, index) => {
+          recentEntries.push({
+            type: 'food',
+            date,
+            entry: meal,
+            mealType,
+            index
+          });
+        });
+      });
+
+      // Add workout entries
+      log.workout_entries.forEach((workout, index) => {
+        recentEntries.push({
+          type: 'workout',
+          date,
+          entry: workout,
+          index
+        });
+      });
+    });
+
+    return recentEntries
+      .sort((a, b) => b.date.localeCompare(a.date))
+      .slice(0, 10); // Show last 10 entries
+  };
+
+  const handleEditEntry = (entryData: any) => {
+    if (entryData.type === 'food') {
+      // Navigate to food page - the edit functionality is already there
+      router.push('/food');
+    } else {
+      // Navigate to workout page - the edit functionality is already there
+      router.push('/workout');
+    }
   };
 
   return (
@@ -204,6 +262,46 @@ export default function JournalScreen() {
                 <Text style={styles.summaryLabel}>Weight Logs</Text>
               </View>
             </View>
+          </View>
+
+          {/* Recent Entries - Click to Edit */}
+          <View style={styles.summaryContainer}>
+            <View style={styles.summaryHeader}>
+              <Calendar color="#2563eb" size={20} />
+              <Text style={styles.summaryTitle}>Recent Entries (Tap to Edit)</Text>
+            </View>
+            
+            {getRecentEntries().slice(0, 5).map((entryData, index) => (
+              <TouchableOpacity
+                key={`${entryData.type}-${entryData.date}-${entryData.index}`}
+                style={styles.recentEntry}
+                onPress={() => handleEditEntry(entryData)}
+              >
+                <View style={styles.recentEntryContent}>
+                  <View style={styles.recentEntryIcon}>
+                    {entryData.type === 'food' ? (
+                      <Utensils color="#059669" size={16} />
+                    ) : (
+                      <Dumbbell color="#f59e0b" size={16} />
+                    )}
+                  </View>
+                  <View style={styles.recentEntryInfo}>
+                    <Text style={styles.recentEntryName}>
+                      {entryData.entry.name}
+                      {entryData.mealType && ` (${entryData.mealType})`}
+                    </Text>
+                    <Text style={styles.recentEntryDetails}>
+                      {entryData.date} • {Math.round(entryData.entry.calories || entryData.entry.calories_burned || 0)} cal
+                    </Text>
+                  </View>
+                  <ChevronRight color="#9ca3af" size={16} />
+                </View>
+              </TouchableOpacity>
+            ))}
+            
+            {getRecentEntries().length === 0 && (
+              <Text style={styles.emptyRecentText}>No recent entries to show</Text>
+            )}
           </View>
         </View>
       </ScrollView>
@@ -355,5 +453,43 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6b7280',
     textAlign: 'center',
+  },
+  recentEntry: {
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  recentEntryContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  recentEntryIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: '#f3f4f6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  recentEntryInfo: {
+    flex: 1,
+  },
+  recentEntryName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 2,
+  },
+  recentEntryDetails: {
+    fontSize: 12,
+    color: '#6b7280',
+  },
+  emptyRecentText: {
+    fontSize: 14,
+    color: '#9ca3af',
+    textAlign: 'center',
+    paddingVertical: 20,
+    fontStyle: 'italic',
   },
 });
