@@ -14,6 +14,10 @@ export interface UserProfile {
     fats_g: number;
     water_ml: number;
   };
+  eating_triggers: string[];
+  problem_foods: string[];
+  preferred_habits: string[];
+  motivation_reason: string;
 }
 
 export interface FoodEntry {
@@ -23,6 +27,12 @@ export interface FoodEntry {
   protein_g: number;
   carbs_g: number;
   fats_g: number;
+  // Behavioral tracking for habit-breaking
+  hunger_level?: 1 | 2 | 3 | 4 | 5; // 1 = not hungry, 5 = very hungry
+  mood_before?: 'stressed' | 'happy' | 'sad' | 'bored' | 'anxious' | 'neutral';
+  eating_trigger?: 'hunger' | 'emotion' | 'social' | 'habit' | 'craving';
+  mindful_rating?: 1 | 2 | 3 | 4 | 5; // How mindfully they ate
+  satisfaction_level?: 1 | 2 | 3 | 4 | 5; // How satisfied they felt after
 }
 
 export interface WorkoutEntry {
@@ -37,6 +47,22 @@ export interface DailyLog {
   };
   workout_entries: WorkoutEntry[];
   water_ml: number;
+  
+  daily_habits: {
+    [habit: string]: boolean; 
+  };
+  mood_checkins: {
+    morning?: 'great' | 'good' | 'okay' | 'stressed' | 'low';
+    evening?: 'great' | 'good' | 'okay' | 'stressed' | 'low';
+  };
+  reflection: {
+    wins?: string; 
+    challenges?: string; 
+    tomorrow_focus?: string; 
+  };
+  habit_streak: {
+    [habit: string]: number; 
+  };
 }
 
 export interface AppData {
@@ -56,4 +82,34 @@ export interface OpenFoodFactsProduct {
     carbohydrates_100g?: number | string;
     fat_100g?: number | string;
   };
+}
+
+// Habit-breaking and behavioral coaching interfaces
+export interface HabitCoachingTip {
+  id: string;
+  title: string;
+  description: string;
+  category: 'mindful_eating' | 'emotional_eating' | 'portion_control' | 'meal_timing' | 'stress_management';
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+}
+
+export interface BehavioralInsight {
+  type: 'pattern' | 'achievement' | 'suggestion' | 'warning';
+  title: string;
+  message: string;
+  actionable_tip?: string;
+  related_data?: any;
+}
+
+export interface MindfulEatingPrompt {
+  pre_meal: string[];
+  during_meal: string[];
+  post_meal: string[];
+}
+
+export interface TriggerAnalysis {
+  trigger: string;
+  frequency: number;
+  associated_foods: string[];
+  suggested_alternatives: string[];
 }

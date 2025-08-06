@@ -7,6 +7,7 @@ import { searchFoods } from '@/utils/api';
 import { safeFloat } from '@/utils/calculations';
 import { FoodEntry, OpenFoodFactsProduct } from '@/types';
 import { FoodDetailModal } from '@/components/FoodDetailModal';
+import { MindfulEatingModal } from '@/components/MindfulEatingModal';
 
 const MEAL_TYPES = [
   { key: 'Breakfast', label: 'Breakfast', icon: Coffee, color: '#f59e0b' },
@@ -26,6 +27,12 @@ export default function Food() {
   const [showFoodDetail, setShowFoodDetail] = useState(false);
   const [selectedFood, setSelectedFood] = useState<OpenFoodFactsProduct | FoodEntry | null>(null);
   const [isSelectedFoodCustom, setIsSelectedFoodCustom] = useState(false);
+  const [showMindfulModal, setShowMindfulModal] = useState(false);
+  const [mindfulResponses, setMindfulResponses] = useState<{
+    hunger_level: 1 | 2 | 3 | 4 | 5;
+    mood_before: 'stressed' | 'happy' | 'sad' | 'bored' | 'anxious' | 'neutral';
+    eating_trigger: 'hunger' | 'emotion' | 'social' | 'habit' | 'craving';
+  } | null>(null);
 
   const log = getCurrentLog();
   const customFoods = data?.custom_foods || [];
@@ -47,16 +54,36 @@ export default function Food() {
   const handleSelectFood = (food: OpenFoodFactsProduct | FoodEntry, isCustom = false) => {
     setSelectedFood(food);
     setIsSelectedFoodCustom(isCustom);
+    // Show mindful eating modal first
+    setShowMindfulModal(true);
+  };
+
+  const handleMindfulComplete = (responses: {
+    hunger_level: 1 | 2 | 3 | 4 | 5;
+    mood_before: 'stressed' | 'happy' | 'sad' | 'bored' | 'anxious' | 'neutral';
+    eating_trigger: 'hunger' | 'emotion' | 'social' | 'habit' | 'craving';
+  }) => {
+    setMindfulResponses(responses);
+    setShowMindfulModal(false);
     setShowFoodDetail(true);
   };
 
   const handleAddFood = async (foodEntry: FoodEntry) => {
+    // Add mindful eating data to the food entry
+    if (mindfulResponses) {
+      foodEntry = {
+        ...foodEntry,
+        ...mindfulResponses
+      };
+    }
+    
     await addFoodEntry(selectedMeal, foodEntry);
     setShowFoodDetail(false);
     setShowAddModal(false);
     setSearchQuery('');
     setSearchResults([]);
     setSelectedFood(null);
+    setMindfulResponses(null);
   };
 
   const renderMealSection = (mealType: string) => {
@@ -115,8 +142,8 @@ export default function Food() {
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <Text style={styles.title}>Food Log</Text>
-          <Text style={styles.subtitle}>Track your meals and nutrition</Text>
+          <Text style={styles.title}>Mindful Food Log</Text>
+          <Text style={styles.subtitle}>Track meals with awareness and intention</Text>
         </View>
 
         <View style={styles.content}>
@@ -222,10 +249,21 @@ export default function Food() {
         onClose={() => {
           setShowFoodDetail(false);
           setSelectedFood(null);
+          setMindfulResponses(null);
         }}
         onAdd={handleAddFood}
         food={selectedFood}
         isCustomFood={isSelectedFoodCustom}
+      />
+      
+      <MindfulEatingModal
+        visible={showMindfulModal}
+        onClose={() => {
+          setShowMindfulModal(false);
+          setSelectedFood(null);
+        }}
+        onComplete={handleMindfulComplete}
+        mealType={selectedMeal}
       />
     </SafeAreaView>
   );

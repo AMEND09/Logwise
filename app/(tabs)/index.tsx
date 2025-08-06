@@ -1,19 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Plus, Flame, Beef, Wheat, Droplets, Dumbbell, ChartBar as BarChart3 } from 'lucide-react-native';
+import { Plus, Flame, Beef, Wheat, Droplets, Dumbbell, ChartBar as BarChart3, ChevronRight } from 'lucide-react-native';
 import { useData } from '@/contexts/DataContext';
 import { SetupModal } from '@/components/SetupModal';
 import { MacroCard } from '@/components/MacroCard';
 import { DateNavigation } from '@/components/DateNavigation';
 import { ProgressBar } from '@/components/ProgressBar';
-import { FloatingActionButton } from '@/components/FloatingActionButton';
 import { WaterDetailModal } from '@/components/WaterDetailModal';
 import { WeightDetailModal } from '@/components/WeightDetailModal';
 import { router } from 'expo-router';
 
 export default function Dashboard() {
-  const { data, loading, currentDate, setCurrentDate, getCurrentLog, logWater, saveProfile, initializeData } = useData();
+  const { data, loading, currentDate, setCurrentDate, getCurrentLog, logWater, logWeight, saveProfile, initializeData } = useData();
   const [showSetup, setShowSetup] = useState(false);
   const [showWaterModal, setShowWaterModal] = useState(false);
   const [showWeightModal, setShowWeightModal] = useState(false);
@@ -88,7 +87,7 @@ export default function Dashboard() {
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Text style={styles.greeting}>Hello, {profile.name}!</Text>
-          <Text style={styles.subtitle}>Keep up the great work</Text>
+          <Text style={styles.subtitle}>Breaking habits, building better choices</Text>
         </View>
 
         <View style={styles.content}>
@@ -191,6 +190,18 @@ export default function Dashboard() {
               ))}
             </View>
           )}
+
+          {/* Quick Insights Card - link to full insights tab */}
+          <View style={styles.insightsPreviewCard}>
+            <View style={styles.insightsPreviewHeader}>
+              <BarChart3 color="#2563eb" size={20} />
+              <Text style={styles.insightsPreviewTitle}>Your Progress</Text>
+              <ChevronRight color="#9ca3af" size={16} />
+            </View>
+            <Text style={styles.insightsPreviewText}>
+              Check the Insights tab for detailed habit tracking and progress analytics
+            </Text>
+          </View>
         </View>
       </ScrollView>
 
@@ -367,5 +378,34 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Regular',
     color: '#6b7280',
     marginTop: 2,
+  },
+  insightsPreviewCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  insightsPreviewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  insightsPreviewTitle: {
+    fontSize: 16,
+    fontFamily: 'Inter-SemiBold',
+    color: '#111827',
+    marginLeft: 8,
+    flex: 1,
+  },
+  insightsPreviewText: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#6b7280',
+    lineHeight: 20,
   },
 });

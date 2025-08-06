@@ -16,6 +16,10 @@ interface DataContextType {
   logWeight: (weight: number) => Promise<void>;
   logWater: (amount: number) => Promise<void>;
   initializeData: () => Promise<void>;
+  // Habit-breaking and behavioral coaching functions
+  toggleHabit: (habitId: string) => Promise<void>;
+  updateMoodCheckin: (type: 'morning' | 'evening', mood: string) => Promise<void>;
+  updateReflection: (field: 'wins' | 'challenges' | 'tomorrow_focus', value: string) => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -69,6 +73,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         fats_g: 56,
         water_ml: 2500,
       },
+      // Initialize habit-breaking fields
+      eating_triggers: [],
+      problem_foods: [],
+      preferred_habits: ['drink_water_wake_up', 'eat_slowly', 'no_phone_eating', 'pause_before_snack'],
+      motivation_reason: '',
     };
 
     const newData: AppData = {
@@ -99,6 +108,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         meals: Object.fromEntries(MEAL_TYPES.map(meal => [meal, []])),
         workout_entries: [],
         water_ml: 0,
+        daily_habits: {},
+        mood_checkins: {},
+        reflection: {},
+        habit_streak: {},
       };
     }
 
@@ -107,6 +120,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         meals: Object.fromEntries(MEAL_TYPES.map(meal => [meal, []])),
         workout_entries: [],
         water_ml: 0,
+        daily_habits: {},
+        mood_checkins: {},
+        reflection: {},
+        habit_streak: {},
       };
     }
 
@@ -168,6 +185,58 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await saveData(updatedData);
   };
 
+  // Habit-breaking and behavioral coaching functions
+  const toggleHabit = async (habitId: string) => {
+    if (!data) return;
+
+    const log = getCurrentLog();
+    
+    // Ensure daily_habits and habit_streak objects exist
+    if (!log.daily_habits) log.daily_habits = {};
+    if (!log.habit_streak) log.habit_streak = {};
+    
+    const currentStatus = log.daily_habits[habitId] || false;
+    log.daily_habits[habitId] = !currentStatus;
+
+    // Update habit streak
+    if (!currentStatus) {
+      // Habit completed - increment streak
+      log.habit_streak[habitId] = (log.habit_streak[habitId] || 0) + 1;
+    } else {
+      // Habit uncompleted - reset streak
+      log.habit_streak[habitId] = 0;
+    }
+
+    const updatedData = { ...data };
+    updatedData.daily_logs[currentDate] = log;
+    setData(updatedData);
+    await saveData(updatedData);
+  };
+
+  const updateMoodCheckin = async (type: 'morning' | 'evening', mood: string) => {
+    if (!data) return;
+
+    const log = getCurrentLog();
+    log.mood_checkins[type] = mood as any;
+
+    const updatedData = { ...data };
+    updatedData.daily_logs[currentDate] = log;
+    setData(updatedData);
+    await saveData(updatedData);
+  };
+
+  const updateReflection = async (field: 'wins' | 'challenges' | 'tomorrow_focus', value: string) => {
+    if (!data) return;
+
+    const log = getCurrentLog();
+    log.reflection[field] = value;
+
+    const updatedData = { ...data };
+    updatedData.daily_logs[currentDate] = log;
+    setData(updatedData);
+    await saveData(updatedData);
+  };
+
   return (
     <DataContext.Provider
       value={{
@@ -183,6 +252,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         logWeight,
         logWater,
         initializeData,
+        toggleHabit,
+        updateMoodCheckin,
+        updateReflection,
       }}
     >
       {children}

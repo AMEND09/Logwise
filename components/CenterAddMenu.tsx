@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated, Dimensions } from 'react-native';
-import { Utensils, Droplets, Scale, Dumbbell, X } from 'lucide-react-native';
+import { Utensils, Droplets, Scale, Dumbbell, Camera, X } from 'lucide-react-native';
 import { router } from 'expo-router';
 
 interface CenterAddMenuProps {
@@ -8,6 +8,7 @@ interface CenterAddMenuProps {
   onClose: () => void;
   onWaterPress: () => void;
   onWeightPress: () => void;
+  onPhotosPress: () => void;
 }
 
 const { width } = Dimensions.get('window');
@@ -17,6 +18,7 @@ export const CenterAddMenu: React.FC<CenterAddMenuProps> = ({
   onClose,
   onWaterPress,
   onWeightPress,
+  onPhotosPress,
 }) => {
   const [animation] = useState(new Animated.Value(0));
 
@@ -61,6 +63,12 @@ export const CenterAddMenu: React.FC<CenterAddMenuProps> = ({
       label: 'Weight',
       color: '#8b5cf6',
       onPress: onWeightPress,
+    },
+    {
+      icon: Camera,
+      label: 'Photo',
+      color: '#ef4444',
+      onPress: onPhotosPress,
     },
     {
       icon: Dumbbell,

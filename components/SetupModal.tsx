@@ -2,6 +2,20 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, Modal, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { UserProfile } from '@/types';
 import { calculateMacroGoals } from '@/utils/calculations';
+import { CheckCircle, Circle } from 'lucide-react-native';
+
+const DEFAULT_HABITS = [
+  { id: 'drink_water_wake_up', name: 'Drink water when I wake up', category: 'hydration' },
+  { id: 'eat_slowly', name: 'Eat slowly and mindfully', category: 'mindful_eating' },
+  { id: 'no_phone_eating', name: 'No phone/TV while eating', category: 'mindful_eating' },
+  { id: 'pause_before_snack', name: 'Pause before snacking', category: 'awareness' },
+  { id: 'plan_meals', name: 'Plan tomorrow\'s meals', category: 'preparation' },
+  { id: 'movement_break', name: 'Take a movement break', category: 'activity' },
+  { id: 'stress_check', name: 'Check stress levels', category: 'emotional_health' },
+  { id: 'gratitude_moment', name: 'Notice one thing I\'m grateful for', category: 'mindfulness' },
+  { id: 'portion_awareness', name: 'Check portion sizes before eating', category: 'portion_control' },
+  { id: 'hunger_check', name: 'Rate hunger before eating', category: 'awareness' },
+];
 
 interface SetupModalProps {
   visible: boolean;
@@ -34,6 +48,10 @@ export const SetupModal: React.FC<SetupModalProps> = ({ visible, onComplete, ini
       fats_g: 56,
       water_ml: 2500,
     },
+    eating_triggers: [],
+    problem_foods: [],
+    preferred_habits: ['drink_water_wake_up', 'eat_slowly', 'no_phone_eating', 'pause_before_snack'],
+    motivation_reason: '',
   });
 
   const [customizeGoals, setCustomizeGoals] = useState(false);
@@ -63,6 +81,22 @@ export const SetupModal: React.FC<SetupModalProps> = ({ visible, onComplete, ini
       ...prev,
       goals: { ...prev.goals, [field]: value },
     }));
+  };
+
+  const toggleHabit = (habitId: string) => {
+    setProfile(prev => {
+      const currentHabits = prev.preferred_habits || [];
+      const isSelected = currentHabits.includes(habitId);
+      
+      const updatedHabits = isSelected
+        ? currentHabits.filter(id => id !== habitId)
+        : [...currentHabits, habitId];
+      
+      return {
+        ...prev,
+        preferred_habits: updatedHabits
+      };
+    });
   };
 
   return (
@@ -248,6 +282,50 @@ export const SetupModal: React.FC<SetupModalProps> = ({ visible, onComplete, ini
             </View>
           </View>
 
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Daily Habits</Text>
+            <Text style={styles.sectionSubtitle}>
+              Choose 3-6 habits you'd like to focus on daily. You can change these later.
+            </Text>
+            
+            <View style={styles.habitsGrid}>
+              {DEFAULT_HABITS.map((habit) => {
+                const isSelected = profile.preferred_habits?.includes(habit.id) || false;
+                return (
+                  <TouchableOpacity
+                    key={habit.id}
+                    style={[
+                      styles.habitOption,
+                      isSelected && styles.habitOptionSelected
+                    ]}
+                    onPress={() => toggleHabit(habit.id)}
+                  >
+                    <View style={styles.habitOptionContent}>
+                      {isSelected ? (
+                        <CheckCircle color="#059669" size={20} />
+                      ) : (
+                        <Circle color="#9ca3af" size={20} />
+                      )}
+                      <Text style={[
+                        styles.habitOptionText,
+                        isSelected && styles.habitOptionTextSelected
+                      ]}>
+                        {habit.name}
+                      </Text>
+                    </View>
+                    <Text style={styles.habitCategory}>
+                      {habit.category.replace('_', ' ')}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            
+            <Text style={styles.habitCount}>
+              {profile.preferred_habits?.length || 0} habits selected
+            </Text>
+          </View>
+
           <TouchableOpacity style={styles.completeButton} onPress={handleComplete}>
             <Text style={styles.completeButtonText}>
               {initialProfile ? 'Save Changes' : 'Complete Setup'}
@@ -386,6 +464,59 @@ const styles = StyleSheet.create({
   activityOptionTextActive: {
     color: '#059669',
     fontFamily: 'Inter-SemiBold',
+  },
+  sectionSubtitle: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#6b7280',
+    marginBottom: 16,
+    lineHeight: 20,
+  },
+  habitsGrid: {
+    gap: 12,
+  },
+  habitOption: {
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 12,
+    backgroundColor: '#ffffff',
+  },
+  habitOptionSelected: {
+    backgroundColor: '#f0fdf4',
+    borderColor: '#bbf7d0',
+  },
+  habitOptionContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  habitOptionText: {
+    fontSize: 15,
+    fontFamily: 'Inter-Regular',
+    color: '#374151',
+    marginLeft: 12,
+    flex: 1,
+  },
+  habitOptionTextSelected: {
+    color: '#059669',
+    fontFamily: 'Inter-SemiBold',
+  },
+  habitCategory: {
+    fontSize: 12,
+    fontFamily: 'Inter-Regular',
+    color: '#9ca3af',
+    textTransform: 'capitalize',
+  },
+  habitCount: {
+    fontSize: 14,
+    fontFamily: 'Inter-SemiBold',
+    color: '#374151',
+    textAlign: 'center',
+    marginTop: 16,
+    padding: 12,
+    backgroundColor: '#f3f4f6',
+    borderRadius: 8,
   },
   completeButton: {
     margin: 16,

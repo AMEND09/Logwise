@@ -1,11 +1,12 @@
 import { Tabs } from 'expo-router';
 import { View, TouchableOpacity, StyleSheet, Dimensions, Animated } from 'react-native';
-import { Home, Utensils, Dumbbell, User, Plus } from 'lucide-react-native';
+import { Home, Utensils, Dumbbell, BarChart3, User, Plus, BookOpen } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useState } from 'react';
 import { CenterAddMenu } from '@/components/CenterAddMenu';
 import { WaterDetailModal } from '@/components/WaterDetailModal';
 import { WeightDetailModal } from '@/components/WeightDetailModal';
+import { ProgressPhotosModal } from '@/components/ProgressPhotosModal';
 import { useData } from '@/contexts/DataContext';
 
 const { width } = Dimensions.get('window');
@@ -15,6 +16,7 @@ export default function TabLayout() {
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [showWaterModal, setShowWaterModal] = useState(false);
   const [showWeightModal, setShowWeightModal] = useState(false);
+  const [showPhotosModal, setShowPhotosModal] = useState(false);
   const [buttonRotation] = useState(new Animated.Value(0));
   const { logWater, logWeight, data } = useData();
 
@@ -35,6 +37,10 @@ export default function TabLayout() {
 
   const handleWeightPress = () => {
     setShowWeightModal(true);
+  };
+
+  const handlePhotosPress = () => {
+    setShowPhotosModal(true);
   };
 
   const handleAddWater = async (amount: number) => {
@@ -61,9 +67,9 @@ export default function TabLayout() {
             backgroundColor: '#ffffff',
             borderTopWidth: 1,
             borderTopColor: '#e5e7eb',
-            height: 70 + insets.bottom,
-            paddingBottom: insets.bottom,
-            paddingTop: 12,
+            height: 85 + insets.bottom,
+            paddingBottom: insets.bottom + 5,
+            paddingTop: 8,
             shadowColor: '#000',
             shadowOffset: { width: 0, height: -2 },
             shadowOpacity: 0.1,
@@ -73,13 +79,19 @@ export default function TabLayout() {
           tabBarActiveTintColor: '#059669',
           tabBarInactiveTintColor: '#6b7280',
           tabBarLabelStyle: {
-            fontSize: 11,
-            fontFamily: 'Inter-SemiBold',
+            fontSize: 12,
+            fontWeight: '600',
             marginTop: 2,
             marginBottom: 2,
           },
           tabBarIconStyle: {
+            marginBottom: 2,
             marginTop: 2,
+          },
+          tabBarItemStyle: {
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
           },
         }}>
         <Tabs.Screen
@@ -87,16 +99,16 @@ export default function TabLayout() {
           options={{
             title: 'Home',
             tabBarIcon: ({ size, color }) => (
-              <Home size={22} color={color} />
+              <Home size={24} color={color} />
             ),
           }}
         />
         <Tabs.Screen
-          name="food"
+          name="journal"
           options={{
-            title: 'Food',
+            title: 'Journal',
             tabBarIcon: ({ size, color }) => (
-              <Utensils size={22} color={color} />
+              <BookOpen size={24} color={color} />
             ),
           }}
         />
@@ -125,11 +137,11 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
-          name="workout"
+          name="insights"
           options={{
-            title: 'Workout',
+            title: 'Insights',
             tabBarIcon: ({ size, color }) => (
-              <Dumbbell size={22} color={color} />
+              <BarChart3 size={24} color={color} />
             ),
           }}
         />
@@ -138,8 +150,22 @@ export default function TabLayout() {
           options={{
             title: 'Profile',
             tabBarIcon: ({ size, color }) => (
-              <User size={22} color={color} />
+              <User size={24} color={color} />
             ),
+          }}
+        />
+        
+        {/* Hidden tabs accessible through journal */}
+        <Tabs.Screen
+          name="food"
+          options={{
+            href: null, // This hides the tab from the tab bar
+          }}
+        />
+        <Tabs.Screen
+          name="workout"
+          options={{
+            href: null, // This hides the tab from the tab bar
           }}
         />
       </Tabs>
@@ -163,6 +189,10 @@ export default function TabLayout() {
           setShowAddMenu(false);
           setShowWeightModal(true);
         }}
+        onPhotosPress={() => {
+          setShowAddMenu(false);
+          setShowPhotosModal(true);
+        }}
       />
       
       <WaterDetailModal
@@ -178,6 +208,11 @@ export default function TabLayout() {
         currentWeight={data?.profile.weight_kg}
         goalWeight={data?.profile.goal_weight_kg}
         startWeight={data?.profile.start_weight_kg}
+      />
+
+      <ProgressPhotosModal
+        visible={showPhotosModal}
+        onClose={() => setShowPhotosModal(false)}
       />
     </>
   );
@@ -203,6 +238,6 @@ const styles = StyleSheet.create({
     elevation: 8,
     borderWidth: 4,
     borderColor: '#ffffff',
-    marginTop: -20, // Lift it up slightly
+    marginTop: -25, // Lift it up more to account for larger tab bar
   },
 });
