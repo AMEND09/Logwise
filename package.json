@@ -7,8 +7,9 @@
   "scripts": {
     "dev": "expo start",
     "build:web": "expo export --platform web",
+    "fix-paths": "node fix-paths.js",
     "lint": "expo lint",
-    "predeploy": "npm run build:web",
+    "predeploy": "npm run build:web && npm run fix-paths",
     "deploy": "gh-pages -d dist"
   },
   "dependencies": {
@@ -49,6 +50,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
+    "@expo/webpack-config": "^19.0.0",
     "@types/react": "~19.0.10",
     "gh-pages": "^6.3.0",
     "typescript": "~5.8.3"
