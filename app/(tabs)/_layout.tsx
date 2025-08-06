@@ -83,16 +83,20 @@ export default function TabLayout() {
             fontWeight: '600',
             marginTop: 2,
             marginBottom: 2,
+            textAlign: 'center',
           },
           tabBarIconStyle: {
-            marginBottom: 2,
-            marginTop: 2,
+            marginBottom: -2,
+            marginTop: 4,
           },
           tabBarItemStyle: {
             flexDirection: 'column',
             alignItems: 'center',
-            justifyContent: 'center',
+            justifyContent: 'space-evenly',
+            height: 70,
+            paddingVertical: 6,
           },
+          tabBarLabelPosition: 'below-icon',
         }}>
         <Tabs.Screen
           name="index"
