@@ -85,11 +85,6 @@ export default function Dashboard() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <Text style={styles.greeting}>Hello, {profile.name}!</Text>
-          <Text style={styles.subtitle}>Breaking habits, building better choices</Text>
-        </View>
-
         <View style={styles.content}>
           <DateNavigation
             currentDate={currentDate}
