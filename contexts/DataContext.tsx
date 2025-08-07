@@ -15,7 +15,7 @@ interface DataContextType {
   addCustomFood: (food: FoodEntry) => Promise<void>;
   logWeight: (weight: number) => Promise<void>;
   logWater: (amount: number) => Promise<void>;
-  initializeData: () => Promise<void>;
+  initializeData: (profile?: UserProfile) => Promise<void>;
   updateFoodEntry: (mealType: string, index: number, entry: FoodEntry, date?: string) => Promise<void>;
   deleteFoodEntry: (mealType: string, index: number, date?: string) => Promise<void>;
   updateWorkoutEntry: (index: number, entry: WorkoutEntry, date?: string) => Promise<void>;
@@ -59,7 +59,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const initializeData = useCallback(async () => {
+  const initializeData = useCallback(async (profile?: UserProfile) => {
     const defaultProfile: UserProfile = {
       name: '',
       age: 30,
@@ -82,8 +82,19 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       motivation_reason: '',
     };
 
+    // If a profile is provided, calculate proper goals and use it
+    let finalProfile = defaultProfile;
+    if (profile) {
+      const goals = calculateMacroGoals(profile);
+      finalProfile = {
+        ...profile,
+        start_weight_kg: profile.start_weight_kg || profile.weight_kg,
+        goals: { ...goals, water_ml: profile.goals.water_ml },
+      };
+    }
+
     const newData: AppData = {
-      profile: defaultProfile,
+      profile: finalProfile,
       custom_foods: [],
       daily_logs: {},
       weight_logs: {},

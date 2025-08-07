@@ -58,8 +58,7 @@ export default function Dashboard() {
       <SetupModal
         visible={showSetup}
         onComplete={async (profile) => {
-          await initializeData();
-          await saveProfile(profile);
+          await initializeData(profile);
           setShowSetup(false);
         }}
       />
@@ -185,16 +184,7 @@ export default function Dashboard() {
             </View>
           )}
 
-          <View style={styles.insightsPreviewCard}>
-            <View style={styles.insightsPreviewHeader}>
-              <BarChart3 color="#2563eb" size={20} />
-              <Text style={styles.insightsPreviewTitle}>Your Progress</Text>
-              <ChevronRight color="#9ca3af" size={16} />
-            </View>
-            <Text style={styles.insightsPreviewText}>
-              Check the Insights tab for detailed habit tracking and progress analytics
-            </Text>
-          </View>
+
         </View>
       </ScrollView>
 
