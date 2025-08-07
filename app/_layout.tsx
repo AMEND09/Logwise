@@ -7,7 +7,6 @@ import { DataProvider } from '@/contexts/DataContext';
 import { useFonts, Inter_400Regular, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 import * as SplashScreen from 'expo-splash-screen';
 
-// Import polyfills for web
 if (Platform.OS === 'web') {
   require('../polyfills');
 }

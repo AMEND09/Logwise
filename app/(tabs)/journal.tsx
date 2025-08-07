@@ -65,7 +65,6 @@ export default function JournalScreen() {
   const log = getCurrentLog();
   const profile = data?.profile;
 
-  // Calculate stats for each section
   const getFoodStats = () => {
     const totalEntries = Object.values(log.meals || {}).flat().length;
     const totalCalories = Object.values(log.meals || {}).flat()
@@ -121,7 +120,6 @@ export default function JournalScreen() {
       index: number;
     }> = [];
 
-    // Get entries from last 7 days
     const dates = Object.keys(data?.daily_logs || {})
       .sort()
       .reverse()
@@ -131,7 +129,6 @@ export default function JournalScreen() {
       const log = data?.daily_logs[date];
       if (!log) return;
 
-      // Add food entries
       Object.entries(log.meals).forEach(([mealType, meals]) => {
         meals.forEach((meal, index) => {
           recentEntries.push({
@@ -144,7 +141,6 @@ export default function JournalScreen() {
         });
       });
 
-      // Add workout entries
       log.workout_entries.forEach((workout, index) => {
         recentEntries.push({
           type: 'workout',
@@ -157,15 +153,13 @@ export default function JournalScreen() {
 
     return recentEntries
       .sort((a, b) => b.date.localeCompare(a.date))
-      .slice(0, 10); // Show last 10 entries
+      .slice(0, 10); 
   };
 
   const handleEditEntry = (entryData: any) => {
     if (entryData.type === 'food') {
-      // Navigate to food page - the edit functionality is already there
       router.push('/food');
     } else {
-      // Navigate to workout page - the edit functionality is already there
       router.push('/workout');
     }
   };
@@ -179,7 +173,6 @@ export default function JournalScreen() {
         </View>
 
         <View style={styles.content}>
-          {/* Main Journal Grid */}
           <View style={styles.gridContainer}>
             <View style={styles.gridRow}>
               <View style={styles.gridItem}>
@@ -230,7 +223,6 @@ export default function JournalScreen() {
             </View>
           </View>
 
-          {/* Quick Stats Summary */}
           <View style={styles.summaryContainer}>
             <View style={styles.summaryHeader}>
               <TrendingUp color="#2563eb" size={20} />
@@ -264,7 +256,6 @@ export default function JournalScreen() {
             </View>
           </View>
 
-          {/* Recent Entries - Click to Edit */}
           <View style={styles.summaryContainer}>
             <View style={styles.summaryHeader}>
               <Calendar color="#2563eb" size={20} />

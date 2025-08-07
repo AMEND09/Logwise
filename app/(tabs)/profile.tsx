@@ -68,7 +68,7 @@ export default function Profile() {
 
     const foodEntry: FoodEntry = {
       name: customFood.name,
-      grams: 100, // Default serving size
+      grams: 100, 
       calories,
       protein_g: protein,
       carbs_g: carbs,

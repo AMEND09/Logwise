@@ -62,7 +62,7 @@ export const WaterDetailModal: React.FC<WaterDetailModalProps> = ({
     onAdd(ml);
   };
 
-  const waterLevel = Math.min(getMlFromAmount() / 500, 1); // Max 500ml for visual
+  const waterLevel = Math.min(getMlFromAmount() / 500, 1); 
 
   return (
     <Modal 
@@ -82,7 +82,6 @@ export const WaterDetailModal: React.FC<WaterDetailModalProps> = ({
         </View>
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          {/* Water Glass Visualization */}
           <View style={styles.visualSection}>
             <View style={styles.glassContainer}>
               <View style={styles.glass}>
@@ -102,7 +101,6 @@ export const WaterDetailModal: React.FC<WaterDetailModalProps> = ({
             </View>
           </View>
 
-          {/* Quick Add Buttons */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Quick Add</Text>
             <View style={styles.quickAddGrid}>
@@ -120,7 +118,6 @@ export const WaterDetailModal: React.FC<WaterDetailModalProps> = ({
             </View>
           </View>
 
-          {/* Custom Amount */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Custom Amount</Text>
             <View style={styles.amountContainer}>
@@ -146,7 +143,6 @@ export const WaterDetailModal: React.FC<WaterDetailModalProps> = ({
                 </TouchableOpacity>
               </View>
               
-              {/* Unit Selector */}
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.unitSelector}>
                 {Object.entries(UNIT_CONVERSIONS).map(([unit, config]) => (
                   <TouchableOpacity
@@ -173,7 +169,6 @@ export const WaterDetailModal: React.FC<WaterDetailModalProps> = ({
             </Text>
           </View>
 
-          {/* Hydration Benefits */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Why Stay Hydrated?</Text>
             <View style={styles.benefitsContainer}>

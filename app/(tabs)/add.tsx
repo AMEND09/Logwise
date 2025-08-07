@@ -2,7 +2,6 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
 export default function AddScreen() {
-  // This screen is hidden and only used for the tab button
   return (
     <View style={styles.container}>
       <Text style={styles.text}>Add Screen</Text>

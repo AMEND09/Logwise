@@ -33,7 +33,6 @@ export default function Food() {
     mood_before: 'stressed' | 'happy' | 'sad' | 'bored' | 'anxious' | 'neutral';
     eating_trigger: 'hunger' | 'emotion' | 'social' | 'habit' | 'craving';
   } | null>(null);
-  // Editing state
   const [editingEntry, setEditingEntry] = useState<{ mealType: string; index: number } | null>(null);
 
   const log = getCurrentLog();
@@ -56,7 +55,6 @@ export default function Food() {
   const handleSelectFood = (food: OpenFoodFactsProduct | FoodEntry, isCustom = false) => {
     setSelectedFood(food);
     setIsSelectedFoodCustom(isCustom);
-    // Show mindful eating modal first
     setShowMindfulModal(true);
   };
 
@@ -72,11 +70,9 @@ export default function Food() {
 
   const handleAddFood = async (foodEntry: FoodEntry) => {
     if (editingEntry) {
-      // Update existing entry
       await updateFoodEntry(editingEntry.mealType, editingEntry.index, foodEntry);
       setEditingEntry(null);
     } else {
-      // Add mindful eating data to the food entry
       if (mindfulResponses) {
         foodEntry = {
           ...foodEntry,
@@ -200,7 +196,7 @@ export default function Food() {
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <Text style={styles.title}>Mindful Food Log</Text>
+          <Text style={styles.title}>Food Log</Text>
           <Text style={styles.subtitle}>Track meals with awareness and intention</Text>
         </View>
 

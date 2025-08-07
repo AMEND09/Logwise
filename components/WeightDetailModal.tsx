@@ -94,7 +94,6 @@ export const WeightDetailModal: React.FC<WeightDetailModalProps> = ({
         </View>
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          {/* Weight Scale Visualization */}
           <View style={styles.visualSection}>
             <View style={styles.scaleContainer}>
               <View style={styles.scale}>
@@ -114,7 +113,6 @@ export const WeightDetailModal: React.FC<WeightDetailModalProps> = ({
             </View>
           </View>
 
-          {/* Quick Adjustments */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Quick Adjustments</Text>
             <View style={styles.quickAdjustGrid}>
@@ -131,7 +129,6 @@ export const WeightDetailModal: React.FC<WeightDetailModalProps> = ({
             </View>
           </View>
 
-          {/* Custom Weight Input */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Custom Weight</Text>
             <View style={styles.weightContainer}>
@@ -157,7 +154,6 @@ export const WeightDetailModal: React.FC<WeightDetailModalProps> = ({
                 </TouchableOpacity>
               </View>
               
-              {/* Unit Selector */}
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.unitSelector}>
                 {Object.entries(UNIT_CONVERSIONS).map(([unit, config]) => (
                   <TouchableOpacity
@@ -184,7 +180,6 @@ export const WeightDetailModal: React.FC<WeightDetailModalProps> = ({
             </Text>
           </View>
 
-          {/* Progress Insights */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Progress Insights</Text>
             <View style={styles.insightsContainer}>
@@ -220,7 +215,6 @@ export const WeightDetailModal: React.FC<WeightDetailModalProps> = ({
             </View>
           </View>
 
-          {/* Weight Tracking Tips */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Weight Tracking Tips</Text>
             <View style={styles.tipsContainer}>

@@ -70,7 +70,6 @@ export default function Dashboard() {
   const { profile } = data;
   const goals = profile.goals;
 
-  // Calculate totals
   const allFoodEntries = Object.values(log.meals).flat();
   const totals = {
     calories: allFoodEntries.reduce((sum, entry) => sum + entry.calories, 0),
@@ -186,7 +185,6 @@ export default function Dashboard() {
             </View>
           )}
 
-          {/* Quick Insights Card - link to full insights tab */}
           <View style={styles.insightsPreviewCard}>
             <View style={styles.insightsPreviewHeader}>
               <BarChart3 color="#2563eb" size={20} />

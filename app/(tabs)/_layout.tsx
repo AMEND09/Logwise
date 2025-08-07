@@ -159,17 +159,17 @@ export default function TabLayout() {
           }}
         />
         
-        {/* Hidden tabs accessible through journal */}
+        
         <Tabs.Screen
           name="food"
           options={{
-            href: null, // This hides the tab from the tab bar
+            href: null, 
           }}
         />
         <Tabs.Screen
           name="workout"
           options={{
-            href: null, // This hides the tab from the tab bar
+            href: null, 
           }}
         />
       </Tabs>
@@ -242,6 +242,6 @@ const styles = StyleSheet.create({
     elevation: 8,
     borderWidth: 4,
     borderColor: '#ffffff',
-    marginTop: -25, // Lift it up more to account for larger tab bar
+    marginTop: -25, 
   },
 });

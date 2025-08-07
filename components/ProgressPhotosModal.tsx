@@ -36,13 +36,36 @@ export const ProgressPhotosModal: React.FC<ProgressPhotosModalProps> = ({
       aspect: [3, 4],
       quality: 0.8,
     });
-
     if (!result.canceled && result.assets[0]) {
       const imageUri = result.assets[0].uri;
-      setSelectedImage(imageUri);
-      // Here you would typically save the image to your data store
-      // For now, we'll just show it in the modal
-      Alert.alert('Success', 'Progress photo captured! This would be saved to your progress gallery.');
+      
+      try {
+      const response = await fetch(imageUri);
+      const blob = await response.blob();
+      
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        
+        const progressPhotos = JSON.parse(localStorage.getItem('progressPhotos') || '[]');
+        const newPhoto = {
+        id: Date.now().toString(),
+        imageData: base64String,
+        date: new Date().toISOString(),
+        };
+        
+        progressPhotos.push(newPhoto);
+        localStorage.setItem('progressPhotos', JSON.stringify(progressPhotos));
+        
+        setSelectedImage(imageUri);
+        Alert.alert('Success', 'Progress photo captured and saved!');
+      };
+      
+      reader.readAsDataURL(blob);
+      } catch (error) {
+      console.error('Error saving image:', error);
+      Alert.alert('Error', 'Failed to save progress photo.');
+      }
     }
   };
 
@@ -63,13 +86,36 @@ export const ProgressPhotosModal: React.FC<ProgressPhotosModalProps> = ({
       Alert.alert('Success', 'Progress photo selected! This would be saved to your progress gallery.');
     }
   };
-
-  const handleSave = () => {
+  const handleSave = async () => {
     if (selectedImage) {
-      // Here you would save the image with current date to your data store
-      // For now, we'll just close the modal
-      onClose();
-      setSelectedImage(null);
+      try {
+        const response = await fetch(selectedImage);
+        const blob = await response.blob();
+        
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64String = reader.result as string;
+          
+          const progressPhotos = JSON.parse(localStorage.getItem('progressPhotos') || '[]');
+          const newPhoto = {
+            id: Date.now().toString(),
+            imageData: base64String,
+            date: new Date().toISOString(),
+          };
+          
+          progressPhotos.push(newPhoto);
+          localStorage.setItem('progressPhotos', JSON.stringify(progressPhotos));
+          
+          Alert.alert('Success', 'Progress photo saved!');
+          onClose();
+          setSelectedImage(null);
+        };
+        
+        reader.readAsDataURL(blob);
+      } catch (error) {
+        console.error('Error saving image:', error);
+        Alert.alert('Error', 'Failed to save progress photo.');
+      }
     }
   };
 
@@ -134,7 +180,6 @@ export const ProgressPhotosModal: React.FC<ProgressPhotosModalProps> = ({
                 </TouchableOpacity>
               </View>
 
-              {/* Recent Progress Photos Preview */}
               <View style={styles.recentSection}>
                 <Text style={styles.recentTitle}>Recent Progress</Text>
                 <View style={styles.recentGrid}>

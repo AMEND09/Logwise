@@ -140,7 +140,6 @@ export default function InsightsScreen() {
         entry.mindful_rating && entry.mindful_rating >= 4
       ).length;
 
-      // Check streaks
       Object.values(log.habit_streak || {}).forEach((streak) => {
         const streakValue = streak as number;
         if (streakValue > longestStreak) longestStreak = streakValue;
@@ -169,7 +168,6 @@ export default function InsightsScreen() {
         <Text style={styles.subtitle}>Track your habit-breaking journey</Text>
       </View>
 
-      {/* View Type Selector */}
       <View style={styles.viewSelector}>
         {(['daily', 'weekly', 'monthly'] as ViewType[]).map((type) => (
           <TouchableOpacity
@@ -190,7 +188,6 @@ export default function InsightsScreen() {
         ))}
       </View>
 
-      {/* Date Navigation */}
       <View style={styles.dateNavigation}>
         <TouchableOpacity 
           style={styles.dateArrow}
@@ -208,7 +205,6 @@ export default function InsightsScreen() {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Progress Overview */}
         {stats && (
           <View style={styles.statsContainer}>
             <Text style={styles.statsTitle}>Progress Overview</Text>
@@ -244,7 +240,6 @@ export default function InsightsScreen() {
           </View>
         )}
 
-        {/* Daily View Components */}
         {viewType === 'daily' && (
           <>
             <HabitTracker 
@@ -255,7 +250,6 @@ export default function InsightsScreen() {
           </>
         )}
 
-        {/* Weekly/Monthly Summary */}
         {viewType !== 'daily' && (
           <View style={styles.summaryContainer}>
             <View style={styles.summaryCard}>
@@ -289,11 +283,9 @@ export default function InsightsScreen() {
           </View>
         )}
 
-        {/* Insights for all views */}
         {viewType === 'daily' && <BehavioralInsights />}
       </ScrollView>
       
-      {/* Habit Customization Modal */}
       {data?.profile && (
         <SetupModal
           visible={showCustomizeHabits}

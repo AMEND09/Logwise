@@ -16,12 +16,10 @@ interface DataContextType {
   logWeight: (weight: number) => Promise<void>;
   logWater: (amount: number) => Promise<void>;
   initializeData: () => Promise<void>;
-  // Edit/Update functions
   updateFoodEntry: (mealType: string, index: number, entry: FoodEntry, date?: string) => Promise<void>;
   deleteFoodEntry: (mealType: string, index: number, date?: string) => Promise<void>;
   updateWorkoutEntry: (index: number, entry: WorkoutEntry, date?: string) => Promise<void>;
   deleteWorkoutEntry: (index: number, date?: string) => Promise<void>;
-  // Habit-breaking and behavioral coaching functions
   toggleHabit: (habitId: string) => Promise<void>;
   updateMoodCheckin: (type: 'morning' | 'evening', mood: string) => Promise<void>;
   updateReflection: (field: 'wins' | 'challenges' | 'tomorrow_focus', value: string) => Promise<void>;
@@ -78,7 +76,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         fats_g: 56,
         water_ml: 2500,
       },
-      // Initialize habit-breaking fields
       eating_triggers: [],
       problem_foods: [],
       preferred_habits: ['drink_water_wake_up', 'eat_slowly', 'no_phone_eating', 'pause_before_snack'],
@@ -190,7 +187,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await saveData(updatedData);
   };
 
-  // Edit/Update/Delete functions
   const updateFoodEntry = async (mealType: string, index: number, entry: FoodEntry, date?: string) => {
     if (!data) return;
 
@@ -271,25 +267,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (date) setCurrentDate(originalDate);
   };
 
-  // Habit-breaking and behavioral coaching functions
   const toggleHabit = async (habitId: string) => {
     if (!data) return;
 
     const log = getCurrentLog();
     
-    // Ensure daily_habits and habit_streak objects exist
     if (!log.daily_habits) log.daily_habits = {};
     if (!log.habit_streak) log.habit_streak = {};
     
     const currentStatus = log.daily_habits[habitId] || false;
     log.daily_habits[habitId] = !currentStatus;
 
-    // Update habit streak
     if (!currentStatus) {
-      // Habit completed - increment streak
       log.habit_streak[habitId] = (log.habit_streak[habitId] || 0) + 1;
     } else {
-      // Habit uncompleted - reset streak
       log.habit_streak[habitId] = 0;
     }
 

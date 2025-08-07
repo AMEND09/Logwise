@@ -154,8 +154,8 @@ const styles = StyleSheet.create({
   },
   menuContainer: {
     position: 'absolute',
-    bottom: 85, // Position above tab bar
-    left: width / 2 - 28, // Center horizontally
+    bottom: 85, 
+    left: width / 2 - 28, 
     alignItems: 'center',
   },
   actionContainer: {

@@ -16,7 +16,7 @@ interface FoodDetailModalProps {
 const UNIT_CONVERSIONS = {
   grams: { multiplier: 1, label: 'g' },
   ounces: { multiplier: 28.35, label: 'oz' },
-  cups: { multiplier: 240, label: 'cup' }, // Approximate for liquids
+  cups: { multiplier: 240, label: 'cup' }, 
   tablespoons: { multiplier: 15, label: 'tbsp' },
   teaspoons: { multiplier: 5, label: 'tsp' },
 };
@@ -62,11 +62,11 @@ export const FoodDetailModal: React.FC<FoodDetailModalProps> = ({
 
   const calculateNutrition = () => {
     const grams = getGramsFromAmount();
-    const scale = grams / 100; // Nutrition data is per 100g
+    const scale = grams / 100; 
 
     if (isCustomFood) {
       const customFood = food as FoodEntry;
-      const customScale = grams / 100; // Assume custom foods are per 100g
+      const customScale = grams / 100; 
       return {
         calories: customFood.calories * customScale,
         protein: customFood.protein_g * customScale,
@@ -130,7 +130,6 @@ export const FoodDetailModal: React.FC<FoodDetailModalProps> = ({
         </View>
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          {/* Amount Input Section */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Amount</Text>
             <View style={styles.amountContainer}>
@@ -156,7 +155,6 @@ export const FoodDetailModal: React.FC<FoodDetailModalProps> = ({
                 </TouchableOpacity>
               </View>
               
-              {/* Unit Selector */}
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.unitSelector}>
                 {Object.entries(UNIT_CONVERSIONS).map(([unit, config]) => (
                   <TouchableOpacity
@@ -183,7 +181,6 @@ export const FoodDetailModal: React.FC<FoodDetailModalProps> = ({
             </Text>
           </View>
 
-          {/* Nutrition Facts */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Nutrition Facts</Text>
             <View style={styles.nutritionCard}>
@@ -214,7 +211,6 @@ export const FoodDetailModal: React.FC<FoodDetailModalProps> = ({
             </View>
           </View>
 
-          {/* Macronutrient Breakdown */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Macronutrient Breakdown</Text>
             <View style={styles.macroBreakdown}>

@@ -73,7 +73,6 @@ export const BehavioralInsights: React.FC = () => {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Personalized Tip */}
         {personalizedTip && (
           <View style={styles.tipContainer}>
             <View style={styles.tipHeader}>
@@ -90,7 +89,6 @@ export const BehavioralInsights: React.FC = () => {
           </View>
         )}
 
-        {/* Behavioral Insights */}
         {insights.map((insight, index) => (
           <TouchableOpacity
             key={index}
@@ -128,7 +126,6 @@ export const BehavioralInsights: React.FC = () => {
           </TouchableOpacity>
         ))}
 
-        {/* Encouragement section if no major insights */}
         {insights.length < 2 && (
           <View style={styles.encouragementContainer}>
             <TrendingUp color="#059669" size={32} />
