@@ -66,7 +66,7 @@ export default function Dashboard() {
   }
 
   const log = getCurrentLog();
-  const { profile } = data;
+  const { profile, daily_logs } = data;
   const goals = profile.goals;
 
   const allFoodEntries = Object.values(log.meals).flat();
@@ -79,6 +79,23 @@ export default function Dashboard() {
   };
 
   const totalWorkoutCalories = log.workout_entries.reduce((sum, entry) => sum + entry.calories_burned, 0);
+
+  // Gather recent food logs from previous days (including today)
+  const recentFoodLogs: Array<{ date: string; mealType: string; entry: any }> = [];
+  if (daily_logs) {
+    // Sort dates descending
+    const sortedDates = Object.keys(daily_logs).sort((a, b) => b.localeCompare(a));
+    for (const date of sortedDates) {
+      const meals = daily_logs[date]?.meals || {};
+      for (const mealType of Object.keys(meals)) {
+        for (const entry of meals[mealType]) {
+          recentFoodLogs.push({ date, mealType, entry });
+        }
+      }
+    }
+  }
+  // Show only the last 5 logs
+  const recentFoodLogsToShow = recentFoodLogs.slice(0, 5);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -165,6 +182,31 @@ export default function Dashboard() {
                 <Text style={styles.summaryValue}>{Math.round(totalWorkoutCalories)}</Text>
               </View>
             </View>
+          </View>
+
+          {/* Recent Logs Section */}
+          <View style={styles.recentLogsCard}>
+            <Text style={styles.recentLogsTitle}>Recent Food Logs</Text>
+            {recentFoodLogsToShow.length === 0 ? (
+              <Text style={styles.recentLogsEmpty}>No recent food logs.</Text>
+            ) : (
+              recentFoodLogsToShow.map((logItem, idx) => {
+                const cals = Math.round(Number(logItem.entry.calories) || 0);
+                const protein = Math.round(Number(logItem.entry.protein_g) || 0);
+                const carbs = Math.round(Number(logItem.entry.carbs_g) || 0);
+                const fats = Math.round(Number(logItem.entry.fats_g) || 0);
+                return (
+                  <View key={idx} style={styles.recentLogItem}>
+                    <Text style={styles.recentLogDate}>{logItem.date}</Text>
+                    <Text style={styles.recentLogMeal}>{logItem.mealType}</Text>
+                    <Text style={styles.recentLogFood}>{logItem.entry.name || 'Food item'}</Text>
+                    <Text style={styles.recentLogDetails}>
+                      {cals} kcal • {protein}g P • {carbs}g C • {fats}g F
+                    </Text>
+                  </View>
+                );
+              })
+            )}
           </View>
 
           {log.workout_entries.length > 0 && (
@@ -360,6 +402,58 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: 'Inter-Regular',
     color: '#6b7280',
+    marginTop: 2,
+  },
+  recentLogsCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    marginTop: 8,
+  },
+  recentLogsTitle: {
+    fontSize: 16,
+    fontFamily: 'Inter-SemiBold',
+    color: '#111827',
+    marginBottom: 12,
+  },
+  recentLogsEmpty: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#6b7280',
+    textAlign: 'center',
+  },
+  recentLogItem: {
+    marginBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+    paddingBottom: 8,
+  },
+  recentLogDate: {
+    fontSize: 12,
+    color: '#6b7280',
+    fontFamily: 'Inter-Regular',
+  },
+  recentLogMeal: {
+    fontSize: 13,
+    color: '#059669',
+    fontFamily: 'Inter-SemiBold',
+    marginTop: 2,
+  },
+  recentLogFood: {
+    fontSize: 15,
+    color: '#111827',
+    fontFamily: 'Inter-Bold',
+    marginTop: 2,
+  },
+  recentLogDetails: {
+    fontSize: 12,
+    color: '#6b7280',
+    fontFamily: 'Inter-Regular',
     marginTop: 2,
   },
   insightsPreviewCard: {
