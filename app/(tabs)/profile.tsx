@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { User, CreditCard as Edit, Scale, Target, Plus, TrendingUp, Settings } from 'lucide-react-native';
+import { User, CreditCard as Edit, Scale, Target, Plus, TrendingUp, Settings, Bell } from 'lucide-react-native';
 import { useData } from '@/contexts/DataContext';
 import { SetupModal } from '@/components/SetupModal';
+import { NotificationSettingsModal } from '@/components/NotificationSettingsModal';
 import { LineChart } from 'react-native-chart-kit';
 import { Dimensions } from 'react-native';
 import { FoodEntry } from '@/types';
@@ -15,6 +16,7 @@ export default function Profile() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showWeightModal, setShowWeightModal] = useState(false);
   const [showCustomFoodModal, setShowCustomFoodModal] = useState(false);
+  const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [weightInput, setWeightInput] = useState('');
   const [customFood, setCustomFood] = useState({
     name: '',
@@ -170,6 +172,12 @@ export default function Profile() {
             onPress={() => setShowEditModal(true)}
           >
             <Edit color="#059669" size={20} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.editButton, { marginLeft: 8 }]}
+            onPress={() => setShowNotificationModal(true)}
+          >
+            <Bell color="#059669" size={20} />
           </TouchableOpacity>
         </View>
 
@@ -372,6 +380,11 @@ export default function Profile() {
           </View>
         </SafeAreaView>
       </Modal>
+
+      <NotificationSettingsModal
+        visible={showNotificationModal}
+        onClose={() => setShowNotificationModal(false)}
+      />
     </SafeAreaView>
   );
 }

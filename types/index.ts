@@ -18,6 +18,13 @@ export interface UserProfile {
   problem_foods: string[];
   preferred_habits: string[];
   motivation_reason: string;
+  meal_times?: {
+    breakfast: string; // HH:MM format
+    lunch: string;
+    dinner: string;
+    snack?: string;
+  };
+  notifications_enabled?: boolean;
 }
 
 export interface FoodEntry {

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import { AppData, UserProfile, DailyLog, FoodEntry, WorkoutEntry, ProgressPhoto } from '@/types';
 import { saveData, loadData } from '@/utils/storage';
 import { calculateMacroGoals } from '@/utils/calculations';
+import { scheduleMealReminders, requestNotificationPermissions } from '@/utils/notifications';
 
 interface DataContextType {
   data: AppData | null;
@@ -25,6 +26,7 @@ interface DataContextType {
   updateReflection: (field: 'wins' | 'challenges' | 'tomorrow_focus', value: string) => Promise<void>;
   addProgressPhoto: (photo: ProgressPhoto) => Promise<void>;
   deleteProgressPhoto: (photoId: string) => Promise<void>;
+  setupNotifications: () => Promise<boolean>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -56,6 +58,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!savedData.progress_photos) {
           savedData.progress_photos = [];
         }
+        // Ensure meal times and notifications are set
+        if (!savedData.profile.meal_times) {
+          savedData.profile.meal_times = {
+            breakfast: '08:00',
+            lunch: '12:30',
+            dinner: '18:30',
+          };
+        }
+        if (savedData.profile.notifications_enabled === undefined) {
+          savedData.profile.notifications_enabled = false;
+        }
         setData(savedData);
       }
     } catch (error) {
@@ -86,6 +99,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       problem_foods: [],
       preferred_habits: ['drink_water_wake_up', 'eat_slowly', 'no_phone_eating', 'pause_before_snack'],
       motivation_reason: '',
+      meal_times: {
+        breakfast: '08:00',
+        lunch: '12:30',
+        dinner: '18:30',
+      },
+      notifications_enabled: false,
     };
 
     // If a profile is provided, calculate proper goals and use it
@@ -115,11 +134,44 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!data) return;
 
     const goals = calculateMacroGoals(profile);
-    const updatedProfile = { ...profile, goals: { ...goals, water_ml: profile.goals.water_ml } };
+    const updatedProfile = { 
+      ...profile, 
+      goals: { ...goals, water_ml: profile.goals.water_ml },
+      // Set default meal times if not provided
+      meal_times: profile.meal_times || {
+        breakfast: '08:00',
+        lunch: '12:30',
+        dinner: '18:30',
+      },
+      notifications_enabled: profile.notifications_enabled ?? false,
+    };
     
     const updatedData = { ...data, profile: updatedProfile };
     setData(updatedData);
     await saveData(updatedData);
+
+    // Reschedule notifications if enabled
+    if (updatedProfile.notifications_enabled) {
+      await scheduleMealReminders(updatedProfile);
+    }
+  };
+
+  const setupNotifications = async (): Promise<boolean> => {
+    const hasPermission = await requestNotificationPermissions();
+    if (hasPermission && data) {
+      const updatedProfile = { 
+        ...data.profile, 
+        notifications_enabled: true,
+        meal_times: data.profile.meal_times || {
+          breakfast: '08:00',
+          lunch: '12:30',
+          dinner: '18:30',
+        },
+      };
+      await saveProfile(updatedProfile);
+      return true;
+    }
+    return false;
   };
 
   const getCurrentLog = (): DailyLog => {
@@ -374,6 +426,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateReflection,
         addProgressPhoto,
         deleteProgressPhoto,
+        setupNotifications,
       }}
     >
       {children}
