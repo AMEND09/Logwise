@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { AppData, UserProfile, DailyLog, FoodEntry, WorkoutEntry } from '@/types';
+import { AppData, UserProfile, DailyLog, FoodEntry, WorkoutEntry, ProgressPhoto } from '@/types';
 import { saveData, loadData } from '@/utils/storage';
 import { calculateMacroGoals } from '@/utils/calculations';
 
@@ -23,6 +23,8 @@ interface DataContextType {
   toggleHabit: (habitId: string) => Promise<void>;
   updateMoodCheckin: (type: 'morning' | 'evening', mood: string) => Promise<void>;
   updateReflection: (field: 'wins' | 'challenges' | 'tomorrow_focus', value: string) => Promise<void>;
+  addProgressPhoto: (photo: ProgressPhoto) => Promise<void>;
+  deleteProgressPhoto: (photoId: string) => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -50,6 +52,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const savedData = await loadData();
       if (savedData) {
+        // Ensure progress_photos field exists for backward compatibility
+        if (!savedData.progress_photos) {
+          savedData.progress_photos = [];
+        }
         setData(savedData);
       }
     } catch (error) {
@@ -98,6 +104,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       custom_foods: [],
       daily_logs: {},
       weight_logs: {},
+      progress_photos: [],
     };
 
     setData(newData);
@@ -325,6 +332,24 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await saveData(updatedData);
   };
 
+  const addProgressPhoto = async (photo: ProgressPhoto) => {
+    if (!data) return;
+
+    const updatedData = { ...data };
+    updatedData.progress_photos.push(photo);
+    setData(updatedData);
+    await saveData(updatedData);
+  };
+
+  const deleteProgressPhoto = async (photoId: string) => {
+    if (!data) return;
+
+    const updatedData = { ...data };
+    updatedData.progress_photos = updatedData.progress_photos.filter(photo => photo.id !== photoId);
+    setData(updatedData);
+    await saveData(updatedData);
+  };
+
   return (
     <DataContext.Provider
       value={{
@@ -347,6 +372,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         toggleHabit,
         updateMoodCheckin,
         updateReflection,
+        addProgressPhoto,
+        deleteProgressPhoto,
       }}
     >
       {children}

@@ -70,6 +70,7 @@ export interface AppData {
   custom_foods: FoodEntry[];
   daily_logs: { [date: string]: DailyLog };
   weight_logs: { [date: string]: number };
+  progress_photos: ProgressPhoto[];
 }
 
 export interface OpenFoodFactsProduct {
@@ -112,4 +113,11 @@ export interface TriggerAnalysis {
   frequency: number;
   associated_foods: string[];
   suggested_alternatives: string[];
+}
+
+export interface ProgressPhoto {
+  id: string;
+  imageUri: string;
+  date: string;
+  note?: string;
 }

@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, Alert, Image, ScrollView, Platform } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, Alert, Image, ScrollView, Platform, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Camera, X, Image as ImageIcon, Calendar } from 'lucide-react-native';
+import { Camera, X, Image as ImageIcon, Calendar, Trash2 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useData } from '@/contexts/DataContext';
+import { ProgressPhoto } from '@/types';
 
 interface ProgressPhotosModalProps {
   visible: boolean;
@@ -14,58 +15,80 @@ export const ProgressPhotosModal: React.FC<ProgressPhotosModalProps> = ({
   visible,
   onClose,
 }) => {
-  const { data } = useData();
+  const { data, addProgressPhoto, deleteProgressPhoto } = useData();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const progressPhotos = data?.progress_photos || [];
+
+  useEffect(() => {
+    if (visible) {
+      requestPermissions();
+    }
+  }, [visible]);
 
   const requestPermissions = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission needed', 'We need camera roll permissions to save your progress photos.');
+    const { status: mediaStatus } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    
+    // Only request camera permissions on native platforms
+    if (Platform.OS !== 'web') {
+      const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
+      if (cameraStatus !== 'granted') {
+        Alert.alert(
+          'Camera Permission',
+          'Camera access is needed to take progress photos.',
+          [{ text: 'OK' }]
+        );
+        return false;
+      }
+    }
+    
+    if (mediaStatus !== 'granted') {
+      Alert.alert(
+        'Media Library Permission',
+        'Photo library access is needed to save and select progress photos.',
+        [{ text: 'OK' }]
+      );
       return false;
     }
+    
     return true;
+  };
+
+  const saveImageForPlatform = async (imageUri: string): Promise<string> => {
+    if (Platform.OS === 'web') {
+      // For web, we can just return the blob URL as-is
+      // In a real app, you'd want to upload to a server or convert to base64
+      return imageUri;
+    } else {
+      // For native platforms, we can use the file URI directly
+      // The image picker already saves to a persistent location
+      return imageUri;
+    }
   };
 
   const takePhoto = async () => {
     const hasPermission = await requestPermissions();
     if (!hasPermission) return;
 
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [3, 4],
-      quality: 0.8,
-    });
-    if (!result.canceled && result.assets[0]) {
-      const imageUri = result.assets[0].uri;
-      
-      try {
-      const response = await fetch(imageUri);
-      const blob = await response.blob();
-      
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result as string;
-        
-        const progressPhotos = JSON.parse(localStorage.getItem('progressPhotos') || '[]');
-        const newPhoto = {
-        id: Date.now().toString(),
-        imageData: base64String,
-        date: new Date().toISOString(),
-        };
-        
-        progressPhotos.push(newPhoto);
-        localStorage.setItem('progressPhotos', JSON.stringify(progressPhotos));
-        
+    setLoading(true);
+    try {
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [3, 4],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const imageUri = result.assets[0].uri;
         setSelectedImage(imageUri);
-        Alert.alert('Success', 'Progress photo captured and saved!');
-      };
-      
-      reader.readAsDataURL(blob);
-      } catch (error) {
-      console.error('Error saving image:', error);
-      Alert.alert('Error', 'Failed to save progress photo.');
       }
+    } catch (error) {
+      console.error('Error taking photo:', error);
+      Alert.alert('Error', 'Failed to take photo. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -73,51 +96,85 @@ export const ProgressPhotosModal: React.FC<ProgressPhotosModalProps> = ({
     const hasPermission = await requestPermissions();
     if (!hasPermission) return;
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [3, 4],
-      quality: 0.8,
-    });
+    setLoading(true);
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [3, 4],
+        quality: 0.8,
+      });
 
-    if (!result.canceled && result.assets[0]) {
-      const imageUri = result.assets[0].uri;
-      setSelectedImage(imageUri);
-      Alert.alert('Success', 'Progress photo selected! This would be saved to your progress gallery.');
-    }
-  };
-  const handleSave = async () => {
-    if (selectedImage) {
-      try {
-        const response = await fetch(selectedImage);
-        const blob = await response.blob();
-        
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const base64String = reader.result as string;
-          
-          const progressPhotos = JSON.parse(localStorage.getItem('progressPhotos') || '[]');
-          const newPhoto = {
-            id: Date.now().toString(),
-            imageData: base64String,
-            date: new Date().toISOString(),
-          };
-          
-          progressPhotos.push(newPhoto);
-          localStorage.setItem('progressPhotos', JSON.stringify(progressPhotos));
-          
-          Alert.alert('Success', 'Progress photo saved!');
-          onClose();
-          setSelectedImage(null);
-        };
-        
-        reader.readAsDataURL(blob);
-      } catch (error) {
-        console.error('Error saving image:', error);
-        Alert.alert('Error', 'Failed to save progress photo.');
+      if (!result.canceled && result.assets[0]) {
+        const imageUri = result.assets[0].uri;
+        setSelectedImage(imageUri);
       }
+    } catch (error) {
+      console.error('Error selecting photo:', error);
+      Alert.alert('Error', 'Failed to select photo. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
+
+  const handleSave = async () => {
+    if (!selectedImage) return;
+
+    setLoading(true);
+    try {
+      const savedImageUri = await saveImageForPlatform(selectedImage);
+      
+      const newPhoto: ProgressPhoto = {
+        id: Date.now().toString(),
+        imageUri: savedImageUri,
+        date: new Date().toISOString(),
+      };
+      
+      await addProgressPhoto(newPhoto);
+      
+      Alert.alert('Success', 'Progress photo saved!');
+      setSelectedImage(null);
+      onClose();
+    } catch (error) {
+      console.error('Error saving photo:', error);
+      Alert.alert('Error', 'Failed to save progress photo. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeletePhoto = (photoId: string) => {
+    Alert.alert(
+      'Delete Photo',
+      'Are you sure you want to delete this progress photo?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Delete', 
+          style: 'destructive',
+          onPress: () => deleteProgressPhoto(photoId)
+        }
+      ]
+    );
+  };
+
+  const renderPhotoItem = ({ item }: { item: ProgressPhoto }) => (
+    <View style={styles.photoItem}>
+      <Image source={{ uri: item.imageUri }} style={styles.photoThumbnail} />
+      <Text style={styles.photoDate}>
+        {new Date(item.date).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+        })}
+      </Text>
+      <TouchableOpacity 
+        style={styles.deleteButton}
+        onPress={() => handleDeletePhoto(item.id)}
+      >
+        <Trash2 color="#ef4444" size={16} />
+      </TouchableOpacity>
+    </View>
+  );
 
   return (
     <Modal 
@@ -132,8 +189,14 @@ export const ProgressPhotosModal: React.FC<ProgressPhotosModalProps> = ({
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Progress Photos</Text>
           {selectedImage && (
-            <TouchableOpacity onPress={handleSave} style={styles.saveButton}>
-              <Text style={styles.saveButtonText}>Save</Text>
+            <TouchableOpacity 
+              onPress={handleSave} 
+              style={[styles.saveButton, loading && styles.disabledButton]}
+              disabled={loading}
+            >
+              <Text style={styles.saveButtonText}>
+                {loading ? 'Saving...' : 'Save'}
+              </Text>
             </TouchableOpacity>
           )}
         </View>
@@ -153,6 +216,7 @@ export const ProgressPhotosModal: React.FC<ProgressPhotosModalProps> = ({
               <TouchableOpacity 
                 style={styles.retakeButton} 
                 onPress={() => setSelectedImage(null)}
+                disabled={loading}
               >
                 <Text style={styles.retakeButtonText}>Take Another Photo</Text>
               </TouchableOpacity>
@@ -169,28 +233,53 @@ export const ProgressPhotosModal: React.FC<ProgressPhotosModalProps> = ({
               </View>
 
               <View style={styles.actionButtons}>
-                <TouchableOpacity style={styles.actionButton} onPress={takePhoto}>
-                  <Camera color="#ffffff" size={24} />
-                  <Text style={styles.actionButtonText}>Take Photo</Text>
-                </TouchableOpacity>
+                {Platform.OS !== 'web' && (
+                  <TouchableOpacity 
+                    style={[styles.actionButton, loading && styles.disabledButton]} 
+                    onPress={takePhoto}
+                    disabled={loading}
+                  >
+                    <Camera color="#ffffff" size={24} />
+                    <Text style={styles.actionButtonText}>
+                      {loading ? 'Opening Camera...' : 'Take Photo'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
 
-                <TouchableOpacity style={styles.secondaryButton} onPress={selectFromGallery}>
+                <TouchableOpacity 
+                  style={[styles.secondaryButton, loading && styles.disabledButton]} 
+                  onPress={selectFromGallery}
+                  disabled={loading}
+                >
                   <ImageIcon color="#059669" size={24} />
-                  <Text style={styles.secondaryButtonText}>Choose from Gallery</Text>
+                  <Text style={styles.secondaryButtonText}>
+                    {loading ? 'Opening Gallery...' : 'Choose from Gallery'}
+                  </Text>
                 </TouchableOpacity>
               </View>
 
               <View style={styles.recentSection}>
-                <Text style={styles.recentTitle}>Recent Progress</Text>
-                <View style={styles.recentGrid}>
-                  <View style={styles.emptyPhotoSlot}>
-                    <Calendar color="#d1d5db" size={32} />
-                    <Text style={styles.emptyPhotoText}>No photos yet</Text>
+                <Text style={styles.recentTitle}>Progress Gallery</Text>
+                {progressPhotos.length === 0 ? (
+                  <View style={styles.emptyState}>
+                    <View style={styles.emptyPhotoSlot}>
+                      <Calendar color="#d1d5db" size={32} />
+                      <Text style={styles.emptyPhotoText}>No photos yet</Text>
+                    </View>
+                    <Text style={styles.recentSubtext}>
+                      Your progress photos will appear here
+                    </Text>
                   </View>
-                </View>
-                <Text style={styles.recentSubtext}>
-                  Your progress photos will appear here
-                </Text>
+                ) : (
+                  <FlatList
+                    data={progressPhotos.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())}
+                    renderItem={renderPhotoItem}
+                    keyExtractor={(item) => item.id}
+                    numColumns={3}
+                    columnWrapperStyle={progressPhotos.length >= 3 ? styles.photoRow : undefined}
+                    showsVerticalScrollIndicator={false}
+                  />
+                )}
               </View>
             </View>
           )}
@@ -231,6 +320,9 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     backgroundColor: '#059669',
     borderRadius: 8,
+  },
+  disabledButton: {
+    backgroundColor: '#9ca3af',
   },
   saveButtonText: {
     color: '#ffffff',
@@ -290,9 +382,6 @@ const styles = StyleSheet.create({
   actionButtons: {
     gap: 16,
     marginBottom: 40,
-    ...(Platform.OS === 'web' ? {
-      paddingBottom: 60,
-    } : {}),
   },
   actionButton: {
     flexDirection: 'row',
@@ -335,11 +424,31 @@ const styles = StyleSheet.create({
     color: '#1a1a1a',
     marginBottom: 16,
   },
-  recentGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
+  emptyState: {
+    alignItems: 'center',
+  },
+  photoRow: {
+    justifyContent: 'space-between',
     marginBottom: 12,
+  },
+  photoItem: {
+    alignItems: 'center',
+    flex: 1,
+    marginHorizontal: 4,
+  },
+  photoThumbnail: {
+    width: 80,
+    height: 106,
+    borderRadius: 8,
+    marginBottom: 4,
+  },
+  photoDate: {
+    fontSize: 10,
+    color: '#6b7280',
+    marginBottom: 4,
+  },
+  deleteButton: {
+    padding: 4,
   },
   emptyPhotoSlot: {
     width: 100,
@@ -363,5 +472,6 @@ const styles = StyleSheet.create({
     color: '#9ca3af',
     textAlign: 'center',
     fontStyle: 'italic',
+    marginTop: 12,
   },
 });
