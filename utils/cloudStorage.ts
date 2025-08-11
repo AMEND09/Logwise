@@ -58,6 +58,8 @@ export const saveProfileToSupabase = async (profile: UserProfile, userId: string
         },
         notifications_enabled: profile.notifications_enabled || false,
         updated_at: new Date().toISOString(),
+      }, {
+        onConflict: 'user_id'
       });
 
     if (error) {
@@ -74,6 +76,7 @@ export const loadProfileFromSupabase = async (userId: string): Promise<UserProfi
   if (!isSupabaseConfigured()) return null;
 
   try {
+    console.log('Loading profile for user:', userId);
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
@@ -82,12 +85,19 @@ export const loadProfileFromSupabase = async (userId: string): Promise<UserProfi
 
     if (error) {
       if (error.code === 'PGRST116') {
+        console.log('No profile found for user:', userId);
         return null;
       }
       console.error('Error loading profile from Supabase:', error);
       return null;
     }
 
+    if (!data) {
+      console.log('No profile data returned for user:', userId);
+      return null;
+    }
+
+    console.log('Profile loaded successfully for user:', userId, 'name:', data.name);
     return {
       name: data.name,
       age: data.age,

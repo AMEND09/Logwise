@@ -58,8 +58,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(true);
       const userId = user?.id;
       
+      console.log('Loading initial data - userId:', userId, 'isGuest:', isGuest);
+      
       if (isGuest) {
         // For guest mode, load from local storage only
+        console.log('Loading data for guest mode');
         const savedData = await loadDataLocally();
         if (savedData) {
           if (!savedData.progress_photos) {
@@ -75,16 +78,20 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (savedData.profile.notifications_enabled === undefined) {
             savedData.profile.notifications_enabled = false;
           }
+          console.log('Guest data loaded:', savedData.profile.name);
           setData(savedData);
         } else {
           // No local data for guest, they need to set up profile
+          console.log('No guest data found, need profile setup');
           setData(null);
         }
       } else if (userId) {
         // For authenticated users, try to load from Supabase first
+        console.log('Loading data for authenticated user:', userId);
         const savedData = await loadData(userId);
         if (savedData && savedData.profile && savedData.profile.name) {
           // User has a valid profile in Supabase
+          console.log('Authenticated user data loaded from Supabase:', savedData.profile.name);
           if (!savedData.progress_photos) {
             savedData.progress_photos = [];
           }
@@ -101,25 +108,29 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setData(savedData);
         } else {
           // Authenticated user but no profile in Supabase yet, check local storage
+          console.log('No Supabase profile found, checking local storage');
           const localData = await loadDataLocally();
           if (localData && localData.profile && localData.profile.name) {
             // User has local data, sync it to Supabase
-            console.log('Syncing local data to Supabase for new authenticated user');
+            console.log('Syncing local data to Supabase for authenticated user:', localData.profile.name);
             await saveData(localData, userId);
             setData(localData);
           } else {
             // New user, no data anywhere - needs profile setup
+            console.log('New authenticated user, no data found - need profile setup');
             setData(null);
           }
         }
       } else {
         // No user and not guest mode - this shouldn't happen but handle gracefully
+        console.log('No user and not guest mode - clearing data');
         setData(null);
       }
     } catch (error) {
       console.error('Error loading initial data:', error);
       // On error, try to load local data as fallback
       const localData = await loadDataLocally();
+      console.log('Fallback to local data:', localData?.profile?.name || 'none');
       setData(localData);
     } finally {
       setLoading(false);
@@ -127,6 +138,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const initializeData = useCallback(async (profile?: UserProfile) => {
+    console.log('Initializing data with profile:', profile?.name || 'default');
+    
     const defaultProfile: UserProfile = {
       name: '',
       age: 30,
@@ -173,9 +186,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       progress_photos: [],
     };
 
+    console.log('Setting new data with profile:', finalProfile.name);
     setData(newData);
+    
     const userId = user?.id;
+    console.log('Saving new data for user:', userId);
     await saveData(newData, userId);
+    console.log('Data initialization complete');
   }, [user]);
 
   const saveProfile = async (profile: UserProfile) => {
