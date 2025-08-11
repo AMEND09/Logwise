@@ -57,25 +57,70 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setLoading(true);
       const userId = user?.id;
-      const savedData = await loadData(userId);
-      if (savedData) {
-        if (!savedData.progress_photos) {
-          savedData.progress_photos = [];
+      
+      if (isGuest) {
+        // For guest mode, load from local storage only
+        const savedData = await loadDataLocally();
+        if (savedData) {
+          if (!savedData.progress_photos) {
+            savedData.progress_photos = [];
+          }
+          if (!savedData.profile.meal_times) {
+            savedData.profile.meal_times = {
+              breakfast: '08:00',
+              lunch: '12:30',
+              dinner: '18:30',
+            };
+          }
+          if (savedData.profile.notifications_enabled === undefined) {
+            savedData.profile.notifications_enabled = false;
+          }
+          setData(savedData);
+        } else {
+          // No local data for guest, they need to set up profile
+          setData(null);
         }
-        if (!savedData.profile.meal_times) {
-          savedData.profile.meal_times = {
-            breakfast: '08:00',
-            lunch: '12:30',
-            dinner: '18:30',
-          };
+      } else if (userId) {
+        // For authenticated users, try to load from Supabase first
+        const savedData = await loadData(userId);
+        if (savedData && savedData.profile && savedData.profile.name) {
+          // User has a valid profile in Supabase
+          if (!savedData.progress_photos) {
+            savedData.progress_photos = [];
+          }
+          if (!savedData.profile.meal_times) {
+            savedData.profile.meal_times = {
+              breakfast: '08:00',
+              lunch: '12:30',
+              dinner: '18:30',
+            };
+          }
+          if (savedData.profile.notifications_enabled === undefined) {
+            savedData.profile.notifications_enabled = false;
+          }
+          setData(savedData);
+        } else {
+          // Authenticated user but no profile in Supabase yet, check local storage
+          const localData = await loadDataLocally();
+          if (localData && localData.profile && localData.profile.name) {
+            // User has local data, sync it to Supabase
+            console.log('Syncing local data to Supabase for new authenticated user');
+            await saveData(localData, userId);
+            setData(localData);
+          } else {
+            // New user, no data anywhere - needs profile setup
+            setData(null);
+          }
         }
-        if (savedData.profile.notifications_enabled === undefined) {
-          savedData.profile.notifications_enabled = false;
-        }
-        setData(savedData);
+      } else {
+        // No user and not guest mode - this shouldn't happen but handle gracefully
+        setData(null);
       }
     } catch (error) {
       console.error('Error loading initial data:', error);
+      // On error, try to load local data as fallback
+      const localData = await loadDataLocally();
+      setData(localData);
     } finally {
       setLoading(false);
     }

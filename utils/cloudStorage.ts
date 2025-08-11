@@ -132,6 +132,8 @@ export const saveDailyLogToSupabase = async (
         reflection: log.reflection,
         habit_streak: log.habit_streak,
         updated_at: new Date().toISOString(),
+      }, {
+        onConflict: 'user_id,date'
       });
 
     if (error) {
@@ -247,6 +249,8 @@ export const saveWeightLogToSupabase = async (
         date,
         weight_kg: weight,
         updated_at: new Date().toISOString(),
+      }, {
+        onConflict: 'user_id,date'
       });
 
     if (error) {
@@ -339,18 +343,36 @@ export const loadProgressPhotosFromSupabase = async (userId: string): Promise<Pr
 };
 
 export const saveData = async (data: AppData, userId?: string): Promise<void> => {
+  // Always save locally first
   await saveDataLocally(data);
 
   if (userId && isSupabaseConfigured()) {
     try {
+      // Save profile
       await saveProfileToSupabase(data.profile, userId);
       
+      // Save daily logs one by one to avoid race conditions
       for (const [date, log] of Object.entries(data.daily_logs)) {
-        await saveDailyLogToSupabase(log, date, userId);
+        try {
+          await saveDailyLogToSupabase(log, date, userId);
+        } catch (error: any) {
+          // Log but don't throw on individual daily log errors
+          if (error?.code !== '23505') { // Not a duplicate key error
+            console.warn(`Failed to save daily log for ${date}:`, error);
+          }
+        }
       }
 
+      // Save weight logs one by one
       for (const [date, weight] of Object.entries(data.weight_logs)) {
-        await saveWeightLogToSupabase(weight, date, userId);
+        try {
+          await saveWeightLogToSupabase(weight, date, userId);
+        } catch (error: any) {
+          // Log but don't throw on individual weight log errors
+          if (error?.code !== '23505') { // Not a duplicate key error
+            console.warn(`Failed to save weight log for ${date}:`, error);
+          }
+        }
       }
 
     } catch (error) {
@@ -370,7 +392,8 @@ export const loadData = async (userId?: string): Promise<AppData | null> => {
         loadProgressPhotosFromSupabase(userId),
       ]);
 
-      if (profile) {
+      if (profile && profile.name) {
+        // User has a valid profile in Supabase
         return {
           profile,
           daily_logs: dailyLogs,
@@ -378,16 +401,54 @@ export const loadData = async (userId?: string): Promise<AppData | null> => {
           weight_logs: weightLogs,
           progress_photos: progressPhotos,
         };
+      } else {
+        // User exists but no profile yet - they need to set up their profile
+        console.log('User authenticated but no profile found in Supabase');
+        return null;
       }
     } catch (error) {
       console.error('Error loading from Supabase, falling back to local storage:', error);
     }
   }
 
+  // Fallback to local storage (guest mode or Supabase error)
   return await loadDataLocally();
 };
 
 export const clearData = async (userId?: string): Promise<void> => {
   await clearDataLocally();
   
+};
+
+// Individual save functions for more efficient updates
+export const saveSingleDailyLog = async (
+  log: DailyLog,
+  date: string,
+  userId?: string
+): Promise<void> => {
+  if (userId && isSupabaseConfigured()) {
+    try {
+      await saveDailyLogToSupabase(log, date, userId);
+    } catch (error: any) {
+      if (error?.code !== '23505') { // Not a duplicate key error
+        console.warn(`Failed to save daily log for ${date}:`, error);
+      }
+    }
+  }
+};
+
+export const saveSingleWeightLog = async (
+  weight: number,
+  date: string,
+  userId?: string
+): Promise<void> => {
+  if (userId && isSupabaseConfigured()) {
+    try {
+      await saveWeightLogToSupabase(weight, date, userId);
+    } catch (error: any) {
+      if (error?.code !== '23505') { // Not a duplicate key error
+        console.warn(`Failed to save weight log for ${date}:`, error);
+      }
+    }
+  }
 };
