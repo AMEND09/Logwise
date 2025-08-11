@@ -1,0 +1,7 @@
+# Cloudflare Pages Redirects Configuration for LogWise
+
+# Handle client-side routing for React Router / Expo Router
+/* /index.html 200
+
+# Redirect old paths (if any)
+/app/* /:splat 301

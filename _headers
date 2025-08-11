@@ -1,0 +1,27 @@
+# Cloudflare Pages Headers Configuration for LogWise
+
+/*
+  # Security headers
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  X-XSS-Protection: 1; mode=block
+  Referrer-Policy: strict-origin-when-cross-origin
+  
+  # Cache control for static assets
+  Cache-Control: public, max-age=31536000, immutable
+
+/_expo/*
+  # Expo assets with longer cache
+  Cache-Control: public, max-age=31536000, immutable
+
+/static/*
+  # Static assets with longer cache
+  Cache-Control: public, max-age=31536000, immutable
+
+# HTML files should not be cached aggressively
+/*.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+# Service worker
+/sw.js
+  Cache-Control: no-cache
