@@ -1,8 +1,10 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { AppData, UserProfile, DailyLog, FoodEntry, WorkoutEntry, ProgressPhoto } from '@/types';
-import { saveData, loadData } from '@/utils/storage';
+import { saveData, loadData, saveCustomFoodToSupabase, saveProgressPhotoToSupabase } from '@/utils/cloudStorage';
+import { saveData as saveDataLocally, loadData as loadDataLocally } from '@/utils/storage';
 import { calculateMacroGoals } from '@/utils/calculations';
 import { scheduleMealReminders, requestNotificationPermissions } from '@/utils/notifications';
+import { useAuth } from './AuthContext';
 
 interface DataContextType {
   data: AppData | null;
@@ -42,23 +44,24 @@ export const useData = () => {
 const MEAL_TYPES = ['Breakfast', 'Lunch', 'Dinner', 'Snacks'];
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, isGuest } = useAuth();
   const [data, setData] = useState<AppData | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(() => new Date().toISOString().split('T')[0]);
 
   useEffect(() => {
     loadInitialData();
-  }, []);
+  }, [user, isGuest]);
 
   const loadInitialData = async () => {
     try {
-      const savedData = await loadData();
+      setLoading(true);
+      const userId = user?.id;
+      const savedData = await loadData(userId);
       if (savedData) {
-        // Ensure progress_photos field exists for backward compatibility
         if (!savedData.progress_photos) {
           savedData.progress_photos = [];
         }
-        // Ensure meal times and notifications are set
         if (!savedData.profile.meal_times) {
           savedData.profile.meal_times = {
             breakfast: '08:00',
@@ -107,7 +110,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       notifications_enabled: false,
     };
 
-    // If a profile is provided, calculate proper goals and use it
     let finalProfile = defaultProfile;
     if (profile) {
       const goals = calculateMacroGoals(profile);
@@ -127,8 +129,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     setData(newData);
-    await saveData(newData);
-  }, []);
+    const userId = user?.id;
+    await saveData(newData, userId);
+  }, [user]);
 
   const saveProfile = async (profile: UserProfile) => {
     if (!data) return;
@@ -137,7 +140,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const updatedProfile = { 
       ...profile, 
       goals: { ...goals, water_ml: profile.goals.water_ml },
-      // Set default meal times if not provided
       meal_times: profile.meal_times || {
         breakfast: '08:00',
         lunch: '12:30',
@@ -148,9 +150,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     const updatedData = { ...data, profile: updatedProfile };
     setData(updatedData);
-    await saveData(updatedData);
+    const userId = user?.id;
+    await saveData(updatedData, userId);
 
-    // Reschedule notifications if enabled
     if (updatedProfile.notifications_enabled) {
       await scheduleMealReminders(updatedProfile);
     }
@@ -205,25 +207,39 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const addFoodEntry = async (mealType: string, entry: FoodEntry) => {
     if (!data) return;
 
-    const log = getCurrentLog();
-    log.meals[mealType].push(entry);
-    
-    const updatedData = { ...data };
-    updatedData.daily_logs[currentDate] = log;
+    const todayLog = getCurrentLog();
+    todayLog.meals[mealType] = [...(todayLog.meals[mealType] || []), entry];
+
+    const updatedData = {
+      ...data,
+      daily_logs: {
+        ...data.daily_logs,
+        [currentDate]: todayLog,
+      },
+    };
+
     setData(updatedData);
-    await saveData(updatedData);
+    const userId = user?.id;
+    await saveData(updatedData, userId);
   };
 
   const addWorkoutEntry = async (entry: WorkoutEntry) => {
     if (!data) return;
 
-    const log = getCurrentLog();
-    log.workout_entries.push(entry);
-    
-    const updatedData = { ...data };
-    updatedData.daily_logs[currentDate] = log;
+    const todayLog = getCurrentLog();
+    todayLog.workout_entries = [...todayLog.workout_entries, entry];
+
+    const updatedData = {
+      ...data,
+      daily_logs: {
+        ...data.daily_logs,
+        [currentDate]: todayLog,
+      },
+    };
+
     setData(updatedData);
-    await saveData(updatedData);
+    const userId = user?.id;
+    await saveData(updatedData, userId);
   };
 
   const addCustomFood = async (food: FoodEntry) => {
@@ -232,7 +248,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const updatedData = { ...data };
     updatedData.custom_foods.push(food);
     setData(updatedData);
-    await saveData(updatedData);
+    const userId = user?.id;
+    await saveData(updatedData, userId);
+
+    if (userId) {
+      try {
+        await saveCustomFoodToSupabase(food, userId);
+      } catch (error) {
+        console.error('Error saving custom food to Supabase:', error);
+      }
+    }
   };
 
   const logWeight = async (weight: number) => {
@@ -242,7 +267,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     updatedData.weight_logs[currentDate] = weight;
     updatedData.profile.weight_kg = weight;
     setData(updatedData);
-    await saveData(updatedData);
+    const userId = user?.id;
+    await saveData(updatedData, userId);
   };
 
   const logWater = async (amount: number) => {
@@ -254,7 +280,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const updatedData = { ...data };
     updatedData.daily_logs[currentDate] = log;
     setData(updatedData);
-    await saveData(updatedData);
+    const userId = user?.id;
+    await saveData(updatedData, userId);
   };
 
   const updateFoodEntry = async (mealType: string, index: number, entry: FoodEntry, date?: string) => {
@@ -271,7 +298,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const updatedData = { ...data };
       updatedData.daily_logs[date || currentDate] = log;
       setData(updatedData);
-      await saveData(updatedData);
+      const userId = user?.id;
+      await saveData(updatedData, userId);
     }
     
     if (date) setCurrentDate(originalDate);
@@ -291,7 +319,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const updatedData = { ...data };
       updatedData.daily_logs[date || currentDate] = log;
       setData(updatedData);
-      await saveData(updatedData);
+      const userId = user?.id;
+      await saveData(updatedData, userId);
     }
     
     if (date) setCurrentDate(originalDate);
@@ -311,7 +340,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const updatedData = { ...data };
       updatedData.daily_logs[date || currentDate] = log;
       setData(updatedData);
-      await saveData(updatedData);
+      const userId = user?.id;
+      await saveData(updatedData, userId);
     }
     
     if (date) setCurrentDate(originalDate);
@@ -331,7 +361,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const updatedData = { ...data };
       updatedData.daily_logs[date || currentDate] = log;
       setData(updatedData);
-      await saveData(updatedData);
+      const userId = user?.id;
+      await saveData(updatedData, userId);
     }
     
     if (date) setCurrentDate(originalDate);
@@ -357,7 +388,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const updatedData = { ...data };
     updatedData.daily_logs[currentDate] = log;
     setData(updatedData);
-    await saveData(updatedData);
+    const userId = user?.id;
+    await saveData(updatedData, userId);
   };
 
   const updateMoodCheckin = async (type: 'morning' | 'evening', mood: string) => {
@@ -369,7 +401,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const updatedData = { ...data };
     updatedData.daily_logs[currentDate] = log;
     setData(updatedData);
-    await saveData(updatedData);
+    const userId = user?.id;
+    await saveData(updatedData, userId);
   };
 
   const updateReflection = async (field: 'wins' | 'challenges' | 'tomorrow_focus', value: string) => {
@@ -381,7 +414,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const updatedData = { ...data };
     updatedData.daily_logs[currentDate] = log;
     setData(updatedData);
-    await saveData(updatedData);
+    const userId = user?.id;
+    await saveData(updatedData, userId);
   };
 
   const addProgressPhoto = async (photo: ProgressPhoto) => {
@@ -390,7 +424,16 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const updatedData = { ...data };
     updatedData.progress_photos.push(photo);
     setData(updatedData);
-    await saveData(updatedData);
+    const userId = user?.id;
+    await saveData(updatedData, userId);
+
+    if (userId) {
+      try {
+        await saveProgressPhotoToSupabase(photo, userId);
+      } catch (error) {
+        console.error('Error saving progress photo to Supabase:', error);
+      }
+    }
   };
 
   const deleteProgressPhoto = async (photoId: string) => {
@@ -399,7 +442,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const updatedData = { ...data };
     updatedData.progress_photos = updatedData.progress_photos.filter(photo => photo.id !== photoId);
     setData(updatedData);
-    await saveData(updatedData);
+    const userId = user?.id;
+    await saveData(updatedData, userId);
   };
 
   return (

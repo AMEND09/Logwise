@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { User, CreditCard as Edit, Scale, Target, Plus, TrendingUp, Settings, Bell } from 'lucide-react-native';
+import { User, CreditCard as Edit, Scale, Target, Plus, TrendingUp, Settings, Bell, LogOut, UserPlus } from 'lucide-react-native';
 import { useData } from '@/contexts/DataContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { SetupModal } from '@/components/SetupModal';
 import { NotificationSettingsModal } from '@/components/NotificationSettingsModal';
 import { LineChart } from 'react-native-chart-kit';
@@ -13,6 +14,7 @@ const screenWidth = Dimensions.get('window').width;
 
 export default function Profile() {
   const { data, saveProfile, logWeight, addCustomFood } = useData();
+  const { user, isGuest, signOut, switchToAccount } = useAuth();
   const [showEditModal, setShowEditModal] = useState(false);
   const [showWeightModal, setShowWeightModal] = useState(false);
   const [showCustomFoodModal, setShowCustomFoodModal] = useState(false);
@@ -86,6 +88,28 @@ export default function Profile() {
       fats_g: '',
     });
     setShowCustomFoodModal(false);
+  };
+
+  const handleSignOut = () => {
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out? Your data will still be saved locally.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Sign Out', style: 'destructive', onPress: signOut },
+      ]
+    );
+  };
+
+  const handleSwitchToAccount = () => {
+    Alert.alert(
+      'Create Account',
+      'Sign up for an account to sync your data across devices and never lose your progress.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Sign Up', onPress: switchToAccount },
+      ]
+    );
   };
 
   const renderWeightChart = () => {
@@ -266,6 +290,49 @@ export default function Profile() {
                 </View>
               ))
             )}
+          </View>
+
+          {/* Account Status Section */}
+          <View style={styles.accountCard}>
+            <Text style={styles.cardTitle}>Account</Text>
+            
+            {user ? (
+              <View>
+                <View style={styles.accountRow}>
+                  <View style={styles.accountInfo}>
+                    <User color="#059669" size={20} />
+                    <View style={styles.accountText}>
+                      <Text style={styles.accountLabel}>Signed in as</Text>
+                      <Text style={styles.accountEmail}>{user.email}</Text>
+                    </View>
+                  </View>
+                </View>
+                
+                <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
+                  <LogOut color="#dc2626" size={16} />
+                  <Text style={styles.signOutText}>Sign Out</Text>
+                </TouchableOpacity>
+              </View>
+            ) : isGuest ? (
+              <View>
+                <View style={styles.guestRow}>
+                  <View style={styles.accountInfo}>
+                    <User color="#6b7280" size={20} />
+                    <View style={styles.accountText}>
+                      <Text style={styles.accountLabel}>Guest Mode</Text>
+                      <Text style={styles.guestDescription}>
+                        Your data is stored locally only
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+                
+                <TouchableOpacity style={styles.createAccountButton} onPress={handleSwitchToAccount}>
+                  <UserPlus color="#059669" size={16} />
+                  <Text style={styles.createAccountText}>Create Account</Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
           </View>
         </View>
       </ScrollView>
@@ -720,5 +787,79 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Inter-SemiBold',
     color: '#ffffff',
+  },
+  accountCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  accountRow: {
+    marginBottom: 16,
+  },
+  guestRow: {
+    marginBottom: 16,
+  },
+  accountInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  accountText: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  accountLabel: {
+    fontSize: 16,
+    fontFamily: 'Inter-SemiBold',
+    color: '#111827',
+    marginBottom: 2,
+  },
+  accountEmail: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#6b7280',
+  },
+  guestDescription: {
+    fontSize: 14,
+    fontFamily: 'Inter-Regular',
+    color: '#6b7280',
+  },
+  signOutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fef2f2',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: '#fecaca',
+  },
+  signOutText: {
+    fontSize: 14,
+    fontFamily: 'Inter-SemiBold',
+    color: '#dc2626',
+    marginLeft: 8,
+  },
+  createAccountButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#dcfdf7',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: '#a7f3d0',
+  },
+  createAccountText: {
+    fontSize: 14,
+    fontFamily: 'Inter-SemiBold',
+    color: '#059669',
+    marginLeft: 8,
   },
 });

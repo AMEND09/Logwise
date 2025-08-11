@@ -7,6 +7,7 @@ import { CenterAddMenu } from '@/components/CenterAddMenu';
 import { WaterDetailModal } from '@/components/WaterDetailModal';
 import { WeightDetailModal } from '@/components/WeightDetailModal';
 import { ProgressPhotosModal } from '@/components/ProgressPhotosModal';
+import { AuthGate } from '@/components/AuthGate';
 import { useData } from '@/contexts/DataContext';
 
 const { width } = Dimensions.get('window');
@@ -59,7 +60,7 @@ export default function TabLayout() {
   });
 
   return (
-    <>
+    <AuthGate>
       <Tabs
         screenOptions={{
           headerShown: false,
@@ -218,7 +219,7 @@ export default function TabLayout() {
         visible={showPhotosModal}
         onClose={() => setShowPhotosModal(false)}
       />
-    </>
+    </AuthGate>
   );
 }
 
