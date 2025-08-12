@@ -5,7 +5,7 @@ import { Plus, Search, Utensils, Coffee, Sun, Moon, Edit3, Trash2 } from 'lucide
 import { useData } from '@/contexts/DataContext';
 import { searchFoods } from '@/utils/api';
 import { safeFloat } from '@/utils/calculations';
-import { FoodEntry, OpenFoodFactsProduct } from '@/types';
+import { FoodEntry, FoodSearchResult } from '@/types';
 import { FoodDetailModal } from '@/components/FoodDetailModal';
 import { MindfulEatingModal } from '@/components/MindfulEatingModal';
 
@@ -21,11 +21,11 @@ export default function Food() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedMeal, setSelectedMeal] = useState('Breakfast');
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<OpenFoodFactsProduct[]>([]);
+  const [searchResults, setSearchResults] = useState<FoodSearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [logType, setLogType] = useState<'search' | 'custom'>('search');
   const [showFoodDetail, setShowFoodDetail] = useState(false);
-  const [selectedFood, setSelectedFood] = useState<OpenFoodFactsProduct | FoodEntry | null>(null);
+  const [selectedFood, setSelectedFood] = useState<FoodSearchResult | FoodEntry | null>(null);
   const [isSelectedFoodCustom, setIsSelectedFoodCustom] = useState(false);
   const [showMindfulModal, setShowMindfulModal] = useState(false);
   const [mindfulResponses, setMindfulResponses] = useState<{
@@ -52,7 +52,7 @@ export default function Food() {
     }
   };
 
-  const handleSelectFood = (food: OpenFoodFactsProduct | FoodEntry, isCustom = false) => {
+  const handleSelectFood = (food: FoodSearchResult | FoodEntry, isCustom = false) => {
     setSelectedFood(food);
     setIsSelectedFoodCustom(isCustom);
     setShowMindfulModal(true);
@@ -260,12 +260,14 @@ export default function Food() {
                   >
                     <View style={styles.resultInfo}>
                       <Text style={styles.resultName}>
-                        {product.product_name || product.product_name_en}
+                        {product.name}
                       </Text>
-                      <Text style={styles.resultBrand}>{product.brands || 'Unknown brand'}</Text>
+                      <Text style={styles.resultBrand}>
+                        {product.brand || 'Unknown brand'} • {product.source.toUpperCase()}
+                      </Text>
                     </View>
                     <Text style={styles.resultCalories}>
-                      {Math.round(safeFloat(product.nutriments['energy-kcal_100g']))} cal/100g
+                      {Math.round(product.calories)} cal/100g
                     </Text>
                   </TouchableOpacity>
                 ))}

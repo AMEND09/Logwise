@@ -2,14 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, TextInput, ScrollView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { X, Plus, Minus, Clock, Flame, Utensils } from 'lucide-react-native';
-import { FoodEntry, OpenFoodFactsProduct } from '@/types';
+import { FoodEntry, OpenFoodFactsProduct, FoodSearchResult } from '@/types';
 import { safeFloat } from '@/utils/calculations';
 
 interface FoodDetailModalProps {
   visible: boolean;
   onClose: () => void;
   onAdd: (entry: FoodEntry) => void;
-  food: OpenFoodFactsProduct | FoodEntry | null;
+  food: OpenFoodFactsProduct | FoodEntry | FoodSearchResult | null;
   isCustomFood?: boolean;
 }
 
@@ -46,12 +46,23 @@ export const FoodDetailModal: React.FC<FoodDetailModalProps> = ({
     if (isCustomFood) {
       return (food as FoodEntry).name;
     }
+    // Check if it's a FoodSearchResult
+    if ('source' in food) {
+      return (food as FoodSearchResult).name;
+    }
+    // Otherwise it's OpenFoodFactsProduct
     const product = food as OpenFoodFactsProduct;
     return product.product_name || product.product_name_en || 'Unknown Food';
   };
 
   const getBrand = () => {
     if (isCustomFood) return null;
+    // Check if it's a FoodSearchResult
+    if ('source' in food) {
+      const searchResult = food as FoodSearchResult;
+      return `${searchResult.brand || 'Unknown brand'} • ${searchResult.source.toUpperCase()}`;
+    }
+    // Otherwise it's OpenFoodFactsProduct
     return (food as OpenFoodFactsProduct).brands || 'Unknown brand';
   };
 
@@ -75,6 +86,18 @@ export const FoodDetailModal: React.FC<FoodDetailModalProps> = ({
       };
     }
 
+    // Check if it's a FoodSearchResult
+    if ('source' in food) {
+      const searchResult = food as FoodSearchResult;
+      return {
+        calories: searchResult.calories * scale,
+        protein: searchResult.protein_g * scale,
+        carbs: searchResult.carbs_g * scale,
+        fats: searchResult.fats_g * scale,
+      };
+    }
+
+    // Otherwise it's OpenFoodFactsProduct
     const product = food as OpenFoodFactsProduct;
     return {
       calories: safeFloat(product.nutriments['energy-kcal_100g']) * scale,

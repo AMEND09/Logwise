@@ -92,6 +92,33 @@ export interface OpenFoodFactsProduct {
   };
 }
 
+export interface USDAFoodItem {
+  fdcId: number;
+  description: string;
+  brandOwner?: string;
+  ingredients?: string;
+  foodNutrients: Array<{
+    nutrientId: number;
+    nutrientName: string;
+    nutrientNumber: string;
+    unitName: string;
+    value: number;
+  }>;
+  dataType: string;
+}
+
+export interface FoodSearchResult {
+  id: string;
+  name: string;
+  brand?: string;
+  calories: number;
+  protein_g: number;
+  carbs_g: number;
+  fats_g: number;
+  source: 'usda' | 'openfoodfacts';
+  sourceId: string | number;
+}
+
 // Habit-breaking and behavioral coaching interfaces
 export interface HabitCoachingTip {
   id: string;
