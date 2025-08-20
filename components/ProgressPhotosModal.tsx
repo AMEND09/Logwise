@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, Alert, Image, ScrollView, Platform, FlatList } from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, Image, ScrollView, Platform, FlatList } from 'react-native';
+import showAlert from '../utils/showAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Camera, X, Image as ImageIcon, Calendar, Trash2 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
@@ -30,25 +31,21 @@ export const ProgressPhotosModal: React.FC<ProgressPhotosModalProps> = ({
   const requestPermissions = async () => {
     const { status: mediaStatus } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     
-    // Only request camera permissions on native platforms
-    if (Platform.OS !== 'web') {
+
+    if (typeof window === 'undefined') {
       const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
       if (cameraStatus !== 'granted') {
-        Alert.alert(
-          'Camera Permission',
-          'Camera access is needed to take progress photos.',
-          [{ text: 'OK' }]
-        );
+        const title = 'Camera Permission';
+        const message = 'Camera access is needed to take progress photos.';
+    showAlert(title, message);
         return false;
       }
     }
     
     if (mediaStatus !== 'granted') {
-      Alert.alert(
-        'Media Library Permission',
-        'Photo library access is needed to save and select progress photos.',
-        [{ text: 'OK' }]
-      );
+      const title = 'Media Library Permission';
+      const message = 'Photo library access is needed to save and select progress photos.';
+      showAlert(title, message);
       return false;
     }
     
@@ -56,15 +53,10 @@ export const ProgressPhotosModal: React.FC<ProgressPhotosModalProps> = ({
   };
 
   const saveImageForPlatform = async (imageUri: string): Promise<string> => {
-    if (Platform.OS === 'web') {
-      // For web, we can just return the blob URL as-is
-      // In a real app, you'd want to upload to a server or convert to base64
-      return imageUri;
-    } else {
-      // For native platforms, we can use the file URI directly
-      // The image picker already saves to a persistent location
+    if (typeof window !== 'undefined') {
       return imageUri;
     }
+    return imageUri;
   };
 
   const takePhoto = async () => {
@@ -86,7 +78,7 @@ export const ProgressPhotosModal: React.FC<ProgressPhotosModalProps> = ({
       }
     } catch (error) {
       console.error('Error taking photo:', error);
-      Alert.alert('Error', 'Failed to take photo. Please try again.');
+  showAlert('Error', 'Failed to take photo. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -111,7 +103,7 @@ export const ProgressPhotosModal: React.FC<ProgressPhotosModalProps> = ({
       }
     } catch (error) {
       console.error('Error selecting photo:', error);
-      Alert.alert('Error', 'Failed to select photo. Please try again.');
+  showAlert('Error', 'Failed to select photo. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -132,30 +124,26 @@ export const ProgressPhotosModal: React.FC<ProgressPhotosModalProps> = ({
       
       await addProgressPhoto(newPhoto);
       
-      Alert.alert('Success', 'Progress photo saved!');
+  showAlert('Success', 'Progress photo saved!');
+  showAlert('Success', 'Progress photo saved!');
       setSelectedImage(null);
       onClose();
     } catch (error) {
       console.error('Error saving photo:', error);
-      Alert.alert('Error', 'Failed to save progress photo. Please try again.');
+  showAlert('Error', 'Failed to save progress photo. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   const handleDeletePhoto = (photoId: string) => {
-    Alert.alert(
-      'Delete Photo',
-      'Are you sure you want to delete this progress photo?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
-          style: 'destructive',
-          onPress: () => deleteProgressPhoto(photoId)
-        }
-      ]
-    );
+    const title = 'Delete Photo';
+    const message = 'Are you sure you want to delete this progress photo?';
+
+    showAlert(title, message, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: () => deleteProgressPhoto(photoId) }
+    ]);
   };
 
   const renderPhotoItem = ({ item }: { item: ProgressPhoto }) => (
@@ -180,9 +168,9 @@ export const ProgressPhotosModal: React.FC<ProgressPhotosModalProps> = ({
     <Modal 
       visible={visible} 
       animationType="slide" 
-      presentationStyle={Platform.OS === 'web' ? 'fullScreen' : 'pageSheet'}
+      presentationStyle={typeof window !== 'undefined' ? 'fullScreen' : 'pageSheet'}
     >
-      <SafeAreaView style={styles.container} edges={Platform.OS === 'web' ? [] : ['top', 'bottom']}>
+      <SafeAreaView style={styles.container} edges={typeof window !== 'undefined' ? [] : ['top', 'bottom']}>
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <X color="#6b7280" size={24} />
@@ -233,7 +221,7 @@ export const ProgressPhotosModal: React.FC<ProgressPhotosModalProps> = ({
               </View>
 
               <View style={styles.actionButtons}>
-                {Platform.OS !== 'web' && (
+                {typeof window === 'undefined' && (
                   <TouchableOpacity 
                     style={[styles.actionButton, loading && styles.disabledButton]} 
                     onPress={takePhoto}

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Modal, Platform } from 'react-native';
+import showAlert from '../../utils/showAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { User, CreditCard as Edit, Scale, Target, Plus, TrendingUp, Settings, Bell, LogOut, UserPlus } from 'lucide-react-native';
 import { useData } from '@/contexts/DataContext';
@@ -45,7 +46,7 @@ export default function Profile() {
   const handleWeightLog = async () => {
     const weight = parseFloat(weightInput);
     if (isNaN(weight) || weight <= 0) {
-      Alert.alert('Error', 'Please enter a valid weight');
+      showAlert('Error', 'Please enter a valid weight');
       return;
     }
 
@@ -56,7 +57,7 @@ export default function Profile() {
 
   const handleAddCustomFood = async () => {
     if (!customFood.name.trim()) {
-      Alert.alert('Error', 'Please enter a food name');
+      showAlert('Error', 'Please enter a food name');
       return;
     }
 
@@ -66,7 +67,7 @@ export default function Profile() {
     const fats = parseFloat(customFood.fats_g);
 
     if (isNaN(calories) || isNaN(protein) || isNaN(carbs) || isNaN(fats)) {
-      Alert.alert('Error', 'Please enter valid nutritional values');
+      showAlert('Error', 'Please enter valid nutritional values');
       return;
     }
 
@@ -91,25 +92,35 @@ export default function Profile() {
   };
 
   const handleSignOut = () => {
-    Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out? Your data will still be saved locally.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Sign Out', style: 'destructive', onPress: signOut },
-      ]
-    );
+    const title = 'Sign Out';
+    const message = 'Are you sure you want to sign out? Your data will still be saved locally.';
+
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const ok = window.confirm(`${title}\n\n${message}`);
+      if (ok) signOut();
+      return;
+    }
+
+    showAlert(title, message, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Sign Out', style: 'destructive', onPress: signOut },
+    ]);
   };
 
   const handleSwitchToAccount = () => {
-    Alert.alert(
-      'Create Account',
-      'Sign up for an account to sync your data across devices and never lose your progress.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Sign Up', onPress: switchToAccount },
-      ]
-    );
+    const title = 'Create Account';
+    const message = 'Sign up for an account to sync your data across devices and never lose your progress.';
+
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const ok = window.confirm(`${title}\n\n${message}`);
+      if (ok) switchToAccount();
+      return;
+    }
+
+    showAlert(title, message, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Sign Up', onPress: switchToAccount },
+    ]);
   };
 
   const renderWeightChart = () => {

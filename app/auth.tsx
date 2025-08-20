@@ -5,12 +5,12 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
+import showAlert from '../utils/showAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
 import { User, Mail, Lock, UserPlus, LogIn, Users } from 'lucide-react-native';
@@ -32,21 +32,21 @@ export default function AuthScreen() {
     const { email, password, fullName, confirmPassword } = formData;
 
     if (!email.trim() || !password.trim()) {
-      Alert.alert('Error', 'Please fill in all required fields');
+      showAlert('Error', 'Please fill in all required fields');
       return;
     }
 
     if (isSignUp) {
       if (!fullName.trim()) {
-        Alert.alert('Error', 'Please enter your full name');
+        showAlert('Error', 'Please enter your full name');
         return;
       }
       if (password !== confirmPassword) {
-        Alert.alert('Error', 'Passwords do not match');
+        showAlert('Error', 'Passwords do not match');
         return;
       }
       if (password.length < 6) {
-        Alert.alert('Error', 'Password must be at least 6 characters long');
+        showAlert('Error', 'Password must be at least 6 characters long');
         return;
       }
     }
@@ -58,11 +58,10 @@ export default function AuthScreen() {
       if (isSignUp) {
         result = await signUp(email, password, fullName);
         if (!result.error) {
-          Alert.alert(
-            'Success',
-            'Account created successfully! Please check your email to verify your account.',
-            [{ text: 'OK', onPress: () => setIsSignUp(false) }]
-          );
+          const title = 'Success';
+          const message = 'Account created successfully! Please check your email to verify your account.';
+
+          showAlert(title, message, [{ text: 'OK', onPress: () => setIsSignUp(false) }]);
           return;
         }
       } else {
@@ -70,10 +69,10 @@ export default function AuthScreen() {
       }
 
       if (result.error) {
-        Alert.alert('Error', result.error);
+        showAlert('Error', result.error);
       }
     } catch (error) {
-      Alert.alert('Error', 'An unexpected error occurred');
+      showAlert('Error', 'An unexpected error occurred');
     } finally {
       setIsLoading(false);
     }
@@ -84,17 +83,7 @@ export default function AuthScreen() {
     const message =
       'You can use the app without an account, but your data will only be stored locally on this device. You can create an account later to sync your data across devices.';
 
-    // On web, React Native's Alert.alert doesn't support button callbacks reliably.
-    // Use the browser confirm dialog so the continueAsGuest callback runs.
-    if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      const ok = window.confirm(`${title}\n\n${message}`);
-      if (ok) {
-        continueAsGuest();
-      }
-      return;
-    }
-
-    Alert.alert(title, message, [
+    showAlert(title, message, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Continue as Guest', onPress: continueAsGuest },
     ]);

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Modal, Platform } from 'react-native';
+import showAlert from '../../utils/showAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Plus, Dumbbell, Clock, Flame, Edit3, Trash2 } from 'lucide-react-native';
 import { useData } from '@/contexts/DataContext';
@@ -20,7 +21,7 @@ export default function Workout() {
 
   const handleAddWorkout = async () => {
     if (!workoutName.trim()) {
-      Alert.alert('Error', 'Please enter a workout name');
+      showAlert('Error', 'Please enter a workout name');
       return;
     }
 
@@ -28,12 +29,12 @@ export default function Workout() {
     const caloriesNum = parseFloat(caloriesBurned);
 
     if (isNaN(durationNum) || durationNum <= 0) {
-      Alert.alert('Error', 'Please enter a valid duration');
+      showAlert('Error', 'Please enter a valid duration');
       return;
     }
 
     if (isNaN(caloriesNum) || caloriesNum <= 0) {
-      Alert.alert('Error', 'Please enter valid calories burned');
+      showAlert('Error', 'Please enter valid calories burned');
       return;
     }
 
@@ -65,18 +66,19 @@ export default function Workout() {
   };
 
   const handleDeleteWorkout = async (index: number) => {
-    Alert.alert(
-      'Delete Workout',
-      'Are you sure you want to delete this workout?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
-          style: 'destructive',
-          onPress: () => deleteWorkoutEntry(index)
-        }
-      ]
-    );
+    const title = 'Delete Workout';
+    const message = 'Are you sure you want to delete this workout?';
+
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const ok = window.confirm(`${title}\n\n${message}`);
+      if (ok) await deleteWorkoutEntry(index);
+      return;
+    }
+
+    showAlert(title, message, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: () => deleteWorkoutEntry(index) }
+    ]);
   };
 
   const handleCloseModal = () => {

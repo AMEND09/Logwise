@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Modal, TextInput, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, Modal, TextInput, TouchableOpacity, ScrollView } from 'react-native';
+import showAlert from '../utils/showAlert';
 import { UserProfile } from '@/types';
 import { calculateMacroGoals } from '@/utils/calculations';
 import { CheckCircle, Circle } from 'lucide-react-native';
@@ -58,7 +59,7 @@ export const SetupModal: React.FC<SetupModalProps> = ({ visible, onComplete, ini
 
   const handleComplete = () => {
     if (!profile.name.trim()) {
-      Alert.alert('Error', 'Please enter your name');
+      showAlert('Error', 'Please enter your name');
       return;
     }
 

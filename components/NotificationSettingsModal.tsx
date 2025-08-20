@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Switch, Modal, Alert, Platform, ActivityIndicator, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Switch, Modal, Platform, ActivityIndicator, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Bell, X, Clock, Info } from 'lucide-react-native';
 import { useData } from '../contexts/DataContext';
@@ -28,7 +28,7 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
   const [selectedMealForTime, setSelectedMealForTime] = useState<'breakfast' | 'lunch' | 'dinner' | null>(null);
   const [tempTimeString, setTempTimeString] = useState('');
 
-  // Update local state when data changes
+  
   useEffect(() => {
     if (data?.profile) {
       setLocalProfile(data.profile);
@@ -43,22 +43,21 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
       const success = await setupNotifications();
       setLoading(false);
       if (!success && Platform.OS !== 'web') {
-        Alert.alert(
+        const showAlert = require('../utils/showAlert').default || require('../utils/showAlert').showAlert;
+        showAlert(
           'Permission Required',
           'Please enable notifications in your device settings to receive meal reminders.'
         );
-        // Don't update local state if permission was denied
         return;
       } else if (Platform.OS === 'web') {
-        // Show info for web users
-        Alert.alert(
+        const showAlert = require('../utils/showAlert').default || require('../utils/showAlert').showAlert;
+        showAlert(
           'Notifications Enabled',
           'Notifications are enabled in your settings. Note: Web browsers have limited notification support. For best experience, use the mobile app.',
           [{ text: 'OK' }]
         );
       }
-      // If successful, setupNotifications already updated the profile
-      // Update local state to reflect the change
+
       setLocalProfile({
         ...localProfile,
         notifications_enabled: true,
@@ -69,7 +68,6 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
         },
       });
     } else {
-      // Disabling notifications
       setLocalProfile({
         ...localProfile,
         notifications_enabled: false,
@@ -121,7 +119,8 @@ export const NotificationSettingsModal: React.FC<NotificationSettingsModalProps>
       setShowTimePicker(false);
       setSelectedMealForTime(null);
     } else {
-      Alert.alert('Invalid Time', 'Please enter a valid time in HH:MM format (e.g., 08:30)');
+      const showAlert = require('../utils/showAlert').default || require('../utils/showAlert').showAlert;
+      showAlert('Invalid Time', 'Please enter a valid time in HH:MM format (e.g., 08:30)');
     }
   };
 

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Modal, Platform } from 'react-native';
+import showAlert from '../../utils/showAlert';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Plus, Search, Utensils, Coffee, Sun, Moon, Edit3, Trash2 } from 'lucide-react-native';
 import { useData } from '@/contexts/DataContext';
@@ -46,7 +47,7 @@ export default function Food() {
       const results = await searchFoods(searchQuery);
       setSearchResults(results);
     } catch (error) {
-      Alert.alert('Error', 'Failed to search foods');
+      showAlert('Error', 'Failed to search foods');
     } finally {
       setSearching(false);
     }
@@ -100,18 +101,19 @@ export default function Food() {
   };
 
   const handleDeleteFood = async (mealType: string, index: number) => {
-    Alert.alert(
-      'Delete Food Entry',
-      'Are you sure you want to delete this food entry?',
-      [
+    const title = 'Delete Food Entry';
+    const message = 'Are you sure you want to delete this food entry?';
+
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const ok = window.confirm(`${title}\n\n${message}`);
+      if (ok) await deleteFoodEntry(mealType, index);
+      return;
+    }
+
+      showAlert(title, message, [
         { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
-          style: 'destructive',
-          onPress: () => deleteFoodEntry(mealType, index)
-        }
-      ]
-    );
+        { text: 'Delete', style: 'destructive', onPress: () => deleteFoodEntry(mealType, index) }
+      ]);
   };
 
   const renderMealSection = (mealType: string) => {
