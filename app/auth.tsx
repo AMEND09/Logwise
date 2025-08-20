@@ -80,14 +80,24 @@ export default function AuthScreen() {
   };
 
   const handleGuestContinue = () => {
-    Alert.alert(
-      'Continue as Guest?',
-      'You can use the app without an account, but your data will only be stored locally on this device. You can create an account later to sync your data across devices.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Continue as Guest', onPress: continueAsGuest },
-      ]
-    );
+    const title = 'Continue as Guest?';
+    const message =
+      'You can use the app without an account, but your data will only be stored locally on this device. You can create an account later to sync your data across devices.';
+
+    // On web, React Native's Alert.alert doesn't support button callbacks reliably.
+    // Use the browser confirm dialog so the continueAsGuest callback runs.
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      const ok = window.confirm(`${title}\n\n${message}`);
+      if (ok) {
+        continueAsGuest();
+      }
+      return;
+    }
+
+    Alert.alert(title, message, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Continue as Guest', onPress: continueAsGuest },
+    ]);
   };
 
   const resetForm = () => {
