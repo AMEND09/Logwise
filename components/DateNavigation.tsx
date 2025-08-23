@@ -2,6 +2,8 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 
+import { parseLocalDate, toLocalISODate } from '@/utils/dates';
+
 interface DateNavigationProps {
   currentDate: string;
   onPrevious: () => void;
@@ -14,9 +16,9 @@ export const DateNavigation: React.FC<DateNavigationProps> = ({
   onNext,
 }) => {
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const today = new Date();
-    const yesterday = new Date();
+    const date = parseLocalDate(dateString);
+    const today = parseLocalDate(toLocalISODate());
+    const yesterday = new Date(today);
     yesterday.setDate(today.getDate() - 1);
 
     if (date.toDateString() === today.toDateString()) {
@@ -33,8 +35,8 @@ export const DateNavigation: React.FC<DateNavigationProps> = ({
   };
 
   const canGoNext = () => {
-    const date = new Date(currentDate);
-    const today = new Date();
+    const date = parseLocalDate(currentDate);
+    const today = parseLocalDate(toLocalISODate());
     return date < today;
   };
 

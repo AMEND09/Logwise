@@ -12,8 +12,9 @@ import {
   ChevronRight 
 } from 'lucide-react-native';
 import { useData } from '@/contexts/DataContext';
-import { router } from 'expo-router';
+import { router, Link } from 'expo-router';
 import { ProgressPhotosModal } from '@/components/ProgressPhotosModal';
+import { MealPlannerModal } from '@/components/MealPlannerModal';
 
 const { width } = Dimensions.get('window');
 
@@ -58,9 +59,10 @@ const JournalCard: React.FC<JournalCardProps> = ({
 );
 
 export default function JournalScreen() {
-  const { data, getCurrentLog, updateFoodEntry, deleteFoodEntry, updateWorkoutEntry, deleteWorkoutEntry } = useData();
+  const { data, getCurrentLog, updateFoodEntry, deleteFoodEntry, updateWorkoutEntry, deleteWorkoutEntry, getPlannedMealsForDate, addPlannedMeal, removePlannedMeal } = useData();
   const [selectedSection, setSelectedSection] = useState<JournalSection | null>(null);
   const [showPhotosModal, setShowPhotosModal] = useState(false);
+  const [showMealPlanner, setShowMealPlanner] = useState(false);
 
   const log = getCurrentLog();
   const profile = data?.profile;
@@ -110,6 +112,9 @@ export default function JournalScreen() {
   const handleProgressPhotos = () => {
     setShowPhotosModal(true);
   };
+
+  const openMealPlanner = () => setShowMealPlanner(true);
+
 
   const getRecentEntries = () => {
     const recentEntries: Array<{
@@ -223,6 +228,23 @@ export default function JournalScreen() {
             </View>
           </View>
 
+          <View style={{ marginBottom: 16 }}>
+            <JournalCard
+              title="Meal Planner"
+              subtitle="Plan meals ahead"
+              icon={<Utensils color="#059669" size={24} />}
+              color="#059669"
+              stats="Plan breakfasts, lunches & more"
+              onPress={openMealPlanner}
+            />
+
+            <View style={{ marginTop: 8, paddingLeft: 16 }}>
+              <TouchableOpacity onPress={() => router.push('/meal-planner')}>
+                <Text style={{ color: '#2563eb', fontWeight: '600' }}>Open weekly meal planner</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
           <View style={styles.summaryContainer}>
             <View style={styles.summaryHeader}>
               <TrendingUp color="#2563eb" size={20} />
@@ -300,6 +322,14 @@ export default function JournalScreen() {
       <ProgressPhotosModal
         visible={showPhotosModal}
         onClose={() => setShowPhotosModal(false)}
+      />
+      <MealPlannerModal
+        visible={showMealPlanner}
+        date={new Date().toISOString().split('T')[0]}
+        onClose={() => setShowMealPlanner(false)}
+        getPlannedMealsForDate={getPlannedMealsForDate}
+        addPlannedMeal={addPlannedMeal}
+        removePlannedMeal={removePlannedMeal}
       />
     </SafeAreaView>
   );

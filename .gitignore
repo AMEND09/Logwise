@@ -1,6 +1,7 @@
 # dependencies
 node_modules/
 
+plan.md
 # expo
 .expo/
 dist/

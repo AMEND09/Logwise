@@ -1,25 +1,29 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Alert, Modal, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { TrendingUp, Calendar, BarChart3, Target, Brain, ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { TrendingUp, Calendar, Target, Brain, ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { useData } from '@/contexts/DataContext';
 import { HabitTracker } from '@/components/HabitTracker';
-import { BehavioralInsights } from '@/components/BehavioralInsights';
 import { DateNavigation } from '@/components/DateNavigation';
 import { SetupModal } from '@/components/SetupModal';
 import { DailyLog, FoodEntry } from '@/types';
+import { analyzeBehavioralPatterns, getPersonalizedTip } from '@/utils/behavioralCoaching';
+import { LineChart } from 'react-native-chart-kit';
+import { toLocalISODate, parseLocalDate } from '@/utils/dates';
 
 const { width } = Dimensions.get('window');
 
 type ViewType = 'daily' | 'weekly' | 'monthly';
 
 export default function InsightsScreen() {
-  const { data, currentDate, setCurrentDate, saveProfile } = useData();
+  const { data, currentDate, setCurrentDate, saveProfile, analytics, goalRecommendations, coachAdvice, completeCoachAction } = useData();
   const [viewType, setViewType] = useState<ViewType>('daily');
   const [showCustomizeHabits, setShowCustomizeHabits] = useState(false);
+  const [legacyTip, setLegacyTip] = useState<string | null>(null); // fallback until enough data
+  const [showCoachModal, setShowCoachModal] = useState(false);
 
   const handleDateChange = (direction: 'prev' | 'next') => {
-    const current = new Date(currentDate);
+  const current = parseLocalDate(currentDate);
     
     if (viewType === 'daily') {
       if (direction === 'prev') {
@@ -41,11 +45,11 @@ export default function InsightsScreen() {
       }
     }
     
-    setCurrentDate(current.toISOString().split('T')[0]);
+  setCurrentDate(toLocalISODate(current));
   };
 
   const getDateRange = () => {
-    const current = new Date(currentDate);
+  const current = parseLocalDate(currentDate);
     
     if (viewType === 'daily') {
       return current.toLocaleDateString('en-US', { 
@@ -75,7 +79,7 @@ export default function InsightsScreen() {
     if (!data?.daily_logs) return null;
 
     const logs = Object.entries(data.daily_logs);
-    const current = new Date(currentDate);
+  const current = parseLocalDate(currentDate);
     let relevantLogs: Array<[string, any]> = [];
 
     if (viewType === 'daily') {
@@ -103,14 +107,14 @@ export default function InsightsScreen() {
       startOfWeek.setDate(current.getDate() - dayOfWeek);
       
       relevantLogs = logs.filter(([date]) => {
-        const logDate = new Date(date);
+        const logDate = parseLocalDate(date);
         const diffTime = logDate.getTime() - startOfWeek.getTime();
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         return diffDays >= 0 && diffDays < 7;
       });
     } else {
       relevantLogs = logs.filter(([date]) => {
-        const logDate = new Date(date);
+        const logDate = parseLocalDate(date);
         return logDate.getMonth() === current.getMonth() && 
                logDate.getFullYear() === current.getFullYear();
       });
@@ -161,6 +165,17 @@ export default function InsightsScreen() {
 
   const stats = getProgressStats();
 
+  // derive coaching tip from behavioral analysis
+  useEffect(() => {
+    // Keep legacy analysis as an additional tip if coachAdvice not yet rich
+    if (!data?.daily_logs || coachAdvice) return;
+    try {
+      const insights = analyzeBehavioralPatterns(data.daily_logs, 14);
+      const tip = getPersonalizedTip(insights);
+      setLegacyTip(tip ? `${tip.title}: ${tip.description}` : null);
+    } catch (e) { /* ignore */ }
+  }, [data, coachAdvice]);
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -205,6 +220,7 @@ export default function InsightsScreen() {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        
         {stats && (
           <View style={styles.statsContainer}>
             <Text style={styles.statsTitle}>Progress Overview</Text>
@@ -246,11 +262,118 @@ export default function InsightsScreen() {
               date={currentDate} 
               onCustomizeHabits={() => setShowCustomizeHabits(true)}
             />
-            <BehavioralInsights />
+
+            {/* Dynamic coaching card (improved) */}
+            <View style={styles.coachingCard}>
+              <Text style={styles.coachingTitle}>Your Coach</Text>
+              {coachAdvice ? (
+                <>
+                  <Text style={styles.coachingText}>{coachAdvice.message}</Text>
+                  <Text style={[styles.coachingText, { fontStyle: 'italic', opacity: 0.85 }]}>Focus: {coachAdvice.focusArea} • {coachAdvice.rationale}</Text>
+                  {coachAdvice.actions && coachAdvice.actions.length > 0 && (
+                    <View style={styles.suggestionsList}>
+                      {coachAdvice.actions.map(action => {
+                        const done = !!data?.daily_logs?.[currentDate]?.coach_actions?.[action.id]?.done;
+                        return (
+                          <TouchableOpacity
+                            key={action.id}
+                            style={[styles.coachActionButton, done && styles.coachActionDone]}
+                            onPress={async () => {
+                              const nowDone = await completeCoachAction(action.id);
+                              if (nowDone) {
+                                Alert.alert('Great!', `Marked: ${action.label}`);
+                              } else {
+                                Alert.alert('Undone', `Unmarked: ${action.label}`);
+                              }
+                            }}
+                          >
+                            <Text style={styles.coachActionText}>{done ? '✔ ' : ''}{action.label}</Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  )}
+                </>
+              ) : (
+                <Text style={styles.coachingText}>{legacyTip || 'Keep logging meals & habits to unlock personalized coaching.'}</Text>
+              )}
+              <TouchableOpacity style={styles.coachingButton} onPress={() => setShowCoachModal(true)}>
+                <Text style={styles.coachingButtonText}>Coach Details</Text>
+              </TouchableOpacity>
+              {/* Coach details modal */}
+              <Modal
+                visible={showCoachModal}
+                animationType="slide"
+                transparent={true}
+                onRequestClose={() => setShowCoachModal(false)}
+              >
+                <View style={styles.modalOverlay}>
+                  <View style={styles.modalCard}>
+                    <ScrollView contentContainerStyle={{ padding: 16 }}>
+                      <Text style={styles.modalTitle}>Coach Details</Text>
+                      {coachAdvice ? (
+                        <>
+                          <Text style={[styles.coachingText, { marginBottom: 8 }]}>{coachAdvice.message}</Text>
+                          <Text style={[styles.coachingText, { fontStyle: 'italic', opacity: 0.9, marginBottom: 12 }]}>{coachAdvice.rationale}</Text>
+                          {coachAdvice.personaTags && coachAdvice.personaTags.length > 0 && (
+                            <View style={{ marginBottom: 12 }}>
+                              <Text style={{ fontWeight: '700', marginBottom: 6 }}>Persona</Text>
+                              <Text style={{ color: '#374151' }}>{coachAdvice.personaTags.join(', ')}</Text>
+                            </View>
+                          )}
+
+                          {coachAdvice.actions && coachAdvice.actions.length > 0 && (
+                            <View style={{ marginTop: 8 }}>
+                              <Text style={{ fontWeight: '700', marginBottom: 8 }}>Suggested Actions</Text>
+                              {coachAdvice.actions.map(action => {
+                                const done = data?.daily_logs?.[currentDate]?.coach_actions?.[action.id]?.done;
+                                return (
+                                  <View key={action.id} style={styles.modalActionRow}>
+                                    <View style={{ flex: 1 }}>
+                                      <Text style={{ fontWeight: '600' }}>{action.label}{done ? ' ✔' : ''}</Text>
+                                      <Text style={{ color: '#6b7280', marginTop: 4 }}>{action.description}</Text>
+                                    </View>
+                                    <View style={{ marginLeft: 12 }}>
+                                      <TouchableOpacity
+                                        style={[styles.coachActionButton, done && styles.coachActionDone]}
+                                        onPress={async () => {
+                                          const nowDone = await completeCoachAction(action.id);
+                                          if (nowDone) {
+                                            Alert.alert('Done', `Marked '${action.label}' done for today.`);
+                                          } else {
+                                            Alert.alert('Undone', `Unmarked '${action.label}'.`);
+                                          }
+                                        }}
+                                      >
+                                        <Text style={styles.coachActionText}>{done ? 'Done' : 'Mark'}</Text>
+                                      </TouchableOpacity>
+                                    </View>
+                                  </View>
+                                );
+                              })}
+                            </View>
+                          )}
+                        </>
+                      ) : (
+                        <Text style={styles.coachingText}>{legacyTip || 'No coach data yet. Keep logging to unlock personalized guidance.'}</Text>
+                      )}
+                    </ScrollView>
+
+                    <View style={{ padding: 12, borderTopWidth: 1, borderColor: '#eee' }}>
+                      <Pressable style={styles.modalCloseButton} onPress={() => setShowCoachModal(false)}>
+                        <Text style={{ color: '#fff', fontWeight: '700' }}>Close</Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                </View>
+              </Modal>
+            </View>
+
+            
           </>
         )}
 
-        {viewType !== 'daily' && (
+  {viewType !== 'daily' && (
           <View style={styles.summaryContainer}>
             <View style={styles.summaryCard}>
               <Text style={styles.summaryTitle}>
@@ -280,10 +403,33 @@ export default function InsightsScreen() {
                 </Text>
               )}
             </View>
+
+            {/* Goal recommendations */}
+            {goalRecommendations && goalRecommendations.length > 0 && (
+              <View style={{ marginTop: 16 }}>
+                <Text style={[styles.summaryTitle, { marginBottom: 12 }]}>Goal Recommendations</Text>
+                {goalRecommendations.map((rec) => (
+                  <View key={rec.goalId} style={styles.goalCard}>
+                    <Text style={styles.goalMessage}>{rec.message}</Text>
+                    <View style={styles.goalMetaRow}>
+                      <Text style={styles.goalStatus}>{rec.status.replace('_', ' ').toUpperCase()}</Text>
+                      {rec.recommendedAdjustment && (
+                        <TouchableOpacity
+                          style={styles.applyButton}
+                          onPress={() => Alert.alert('Suggestion', rec.recommendedAdjustment)}
+                        >
+                          <Text style={styles.applyButtonText}>Apply Suggestion</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  </View>
+                ))}
+              </View>
+            )}
           </View>
         )}
 
-        {viewType === 'daily' && <BehavioralInsights />}
+        
       </ScrollView>
       
       {data?.profile && (
@@ -454,5 +600,160 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontStyle: 'italic',
     lineHeight: 24,
+  },
+  analyticsCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  analyticsTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 8,
+  },
+  analyticsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  analyticsItem: {
+    flex: 1,
+    alignItems: 'center',
+    padding: 8,
+  },
+  analyticsLabel: {
+    fontSize: 12,
+    color: '#6b7280',
+  },
+  analyticsValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+    marginTop: 6,
+  },
+  coachingCard: {
+    backgroundColor: '#fffbeb',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#fed7aa',
+  },
+  coachingTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#92400e',
+    marginBottom: 6,
+  },
+  coachingText: {
+    fontSize: 14,
+    color: '#92400e',
+    marginBottom: 8,
+  },
+  coachingButton: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#92400e',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  coachingButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  suggestionsList: {
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  suggestionItem: {
+    fontSize: 14,
+    color: '#374151',
+    marginBottom: 4,
+  },
+  coachActionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    gap: 8,
+    marginTop: 8,
+    marginBottom: 12,
+  },
+  coachActionButton: {
+    backgroundColor: '#eef2ff',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  coachActionDone: {
+    backgroundColor: '#bbf7d0',
+  },
+  coachActionText: {
+    color: '#1f2937',
+    fontWeight: '600',
+  },
+  goalCard: {
+    backgroundColor: '#ffffff',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#e6e9ef',
+  },
+  goalMessage: {
+    color: '#374151',
+    marginBottom: 8,
+  },
+  goalMetaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  goalStatus: {
+    color: '#6b7280',
+    fontWeight: '700',
+  },
+  applyButton: {
+    backgroundColor: '#2563eb',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+  },
+  applyButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  modalCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    maxHeight: '85%',
+    overflow: 'hidden',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  modalActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  modalCloseButton: {
+    backgroundColor: '#374151',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    alignItems: 'center',
   },
 });

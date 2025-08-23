@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Plus, Flame, Beef, Wheat, Droplets, Dumbbell, ChartBar as BarChart3, ChevronRight } from 'lucide-react-native';
 import { useData } from '@/contexts/DataContext';
+import { toLocalISODate, parseLocalDate } from '@/utils/dates';
 import { SetupModal } from '@/components/SetupModal';
 import { MacroCard } from '@/components/MacroCard';
 import { DateNavigation } from '@/components/DateNavigation';
@@ -24,13 +25,13 @@ export default function Dashboard() {
   }, [loading, data]);
 
   const handleDateChange = (direction: 'prev' | 'next') => {
-    const current = new Date(currentDate);
+    const current = parseLocalDate(currentDate);
     if (direction === 'prev') {
       current.setDate(current.getDate() - 1);
     } else {
       current.setDate(current.getDate() + 1);
     }
-    setCurrentDate(current.toISOString().split('T')[0]);
+  setCurrentDate(toLocalISODate(current));
   };
 
   const handleAddWater = async (amount: number) => {

@@ -4,6 +4,10 @@ import { saveData, loadData, saveCustomFoodToSupabase, saveProgressPhotoToSupaba
 import { saveData as saveDataLocally, loadData as loadDataLocally } from '@/utils/storage';
 import { calculateMacroGoals } from '@/utils/calculations';
 import { scheduleMealReminders, requestNotificationPermissions } from '@/utils/notifications';
+import { summarizeAnalytics } from '@/utils/analytics';
+import { toLocalISODate } from '@/utils/dates';
+import { evaluateGoals } from '@/utils/goals';
+import { analyzeForCoach, generateCoachAdvice } from '@/utils/coach';
 import { useAuth } from './AuthContext';
 
 interface DataContextType {
@@ -11,6 +15,12 @@ interface DataContextType {
   loading: boolean;
   currentDate: string;
   setCurrentDate: (date: string) => void;
+  analytics: import('@/types').AnalyticsSummary | null;
+  goalRecommendations: import('@/types').GoalRecommendation[];
+  coachAnalysis: import('@/types').CoachAnalysis | null;
+  coachAdvice: import('@/types').CoachAdvice | null;
+  addGoal: (goal: import('@/types').Goal) => Promise<void>;
+  removeGoal: (goalId: string) => Promise<void>;
   saveProfile: (profile: UserProfile) => Promise<void>;
   getCurrentLog: () => DailyLog;
   addFoodEntry: (mealType: string, entry: FoodEntry) => Promise<void>;
@@ -29,6 +39,10 @@ interface DataContextType {
   addProgressPhoto: (photo: ProgressPhoto) => Promise<void>;
   deleteProgressPhoto: (photoId: string) => Promise<void>;
   setupNotifications: () => Promise<boolean>;
+  completeCoachAction: (actionId: string) => Promise<boolean>;
+  getPlannedMealsForDate: (date: string) => import('@/types').PlannedMeal[];
+  addPlannedMeal: (date: string, meal: import('@/types').PlannedMeal) => Promise<void>;
+  removePlannedMeal: (date: string, mealId: string) => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -47,11 +61,41 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const { user, isGuest } = useAuth();
   const [data, setData] = useState<AppData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [currentDate, setCurrentDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [analytics, setAnalytics] = useState<import('@/types').AnalyticsSummary | null>(null);
+  const [goalRecommendations, setGoalRecommendations] = useState<import('@/types').GoalRecommendation[]>([]);
+  const [coachAnalysis, setCoachAnalysis] = useState<import('@/types').CoachAnalysis | null>(null);
+  const [coachAdvice, setCoachAdvice] = useState<import('@/types').CoachAdvice | null>(null);
+  const [currentDate, setCurrentDate] = useState(() => toLocalISODate());
 
   useEffect(() => {
     loadInitialData();
   }, [user, isGuest]);
+
+  // Recompute analytics and goals whenever data changes
+  useEffect(() => {
+    if (!data) {
+      setAnalytics(null);
+      setGoalRecommendations([]);
+      setCoachAnalysis(null);
+      setCoachAdvice(null);
+      return;
+    }
+
+    try {
+      const summary = summarizeAnalytics(data.daily_logs, data.weight_logs, 30);
+      setAnalytics(summary);
+      const recs = evaluateGoals(data);
+      setGoalRecommendations(recs);
+
+      // Coaching analysis & advice (lightweight heuristics)
+      const analysis = analyzeForCoach(data, 14);
+      setCoachAnalysis(analysis);
+      const advice = generateCoachAdvice(data, 14);
+      setCoachAdvice(advice);
+    } catch (error) {
+      console.error('Error computing analytics/goals/coach:', error);
+    }
+  }, [data]);
 
   const loadInitialData = async () => {
     try {
@@ -322,6 +366,25 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const addGoal = async (goal: import('@/types').Goal) => {
+    if (!data) return;
+    const updatedData = { ...data } as AppData & { profile: any };
+    updatedData.profile.goals_list = updatedData.profile.goals_list || [];
+    updatedData.profile.goals_list.push(goal);
+    setData(updatedData);
+    const userId = user?.id;
+    await saveData(updatedData, userId);
+  };
+
+  const removeGoal = async (goalId: string) => {
+    if (!data) return;
+    const updatedData = { ...data } as AppData & { profile: any };
+    updatedData.profile.goals_list = (updatedData.profile.goals_list || []).filter((g: any) => g.id !== goalId);
+    setData(updatedData);
+    const userId = user?.id;
+    await saveData(updatedData, userId);
+  };
+
   const logWeight = async (weight: number) => {
     if (!data) return;
 
@@ -508,6 +571,58 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await saveData(updatedData, userId);
   };
 
+  const completeCoachAction = async (actionId: string): Promise<boolean> => {
+    if (!data) return false;
+    const log = getCurrentLog();
+    if (!log.coach_actions) log.coach_actions = {};
+
+    const currentlyDone = !!log.coach_actions[actionId]?.done;
+    if (currentlyDone) {
+      // unmark
+      delete log.coach_actions[actionId];
+    } else {
+      log.coach_actions[actionId] = { done: true, completed_at: new Date().toISOString() };
+    }
+
+    // If coach_actions becomes empty, normalize to undefined
+    if (Object.keys(log.coach_actions).length === 0) {
+      delete log.coach_actions;
+    }
+
+    const updatedData = { ...data };
+    updatedData.daily_logs[currentDate] = log;
+    setData(updatedData);
+    const userId = user?.id;
+    await saveData(updatedData, userId);
+
+    return !currentlyDone; // return true if now marked done
+  };
+
+  const getPlannedMealsForDate = (date: string) => {
+    if (!data) return [];
+    return data.planned_meals?.[date] || [];
+  };
+
+  const addPlannedMeal = async (date: string, meal: import('@/types').PlannedMeal) => {
+    if (!data) return;
+    const updatedData = { ...data };
+    updatedData.planned_meals = updatedData.planned_meals || {};
+    updatedData.planned_meals[date] = [...(updatedData.planned_meals[date] || []), meal];
+    setData(updatedData);
+    const userId = user?.id;
+    await saveData(updatedData, userId);
+  };
+
+  const removePlannedMeal = async (date: string, mealId: string) => {
+    if (!data) return;
+    const updatedData = { ...data };
+    if (!updatedData.planned_meals || !updatedData.planned_meals[date]) return;
+    updatedData.planned_meals[date] = updatedData.planned_meals[date].filter(m => m.id !== mealId);
+    setData(updatedData);
+    const userId = user?.id;
+    await saveData(updatedData, userId);
+  };
+
   return (
     <DataContext.Provider
       value={{
@@ -515,7 +630,13 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         loading,
         currentDate,
         setCurrentDate,
-        saveProfile,
+      analytics,
+      goalRecommendations,
+  coachAnalysis,
+  coachAdvice,
+      addGoal,
+      removeGoal,
+      saveProfile,
         getCurrentLog,
         addFoodEntry,
         addWorkoutEntry,
@@ -533,6 +654,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         addProgressPhoto,
         deleteProgressPhoto,
         setupNotifications,
+  completeCoachAction,
+  getPlannedMealsForDate,
+  addPlannedMeal,
+  removePlannedMeal,
       }}
     >
       {children}
